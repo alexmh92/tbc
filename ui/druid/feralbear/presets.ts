@@ -6,12 +6,14 @@ import { SavedTalents } from '../../core/proto/ui.js';
 import { Stats } from '../../core/proto_utils/stats';
 import PreraidGear from './gear_sets/preraid.gear.json';
 import P1Gear from './gear_sets/p1.gear.json';
+import P2Gear from './gear_sets/p2.gear.json';
 import P2HydrossFrostGear from './gear_sets/p2_hydross_frost.gear.json';
 import P2HydrossNatureGear from './gear_sets/p2_hydross_nature.gear.json';
 
 // Preset options for this spec.
 export const PRERAID_PRESET = PresetUtils.makePresetGear('Pre-Raid', PreraidGear, { group: 'Default' });
 export const P1_PRESET = PresetUtils.makePresetGear('P1', P1Gear, { group: 'Default' });
+export const P2_PRESET = PresetUtils.makePresetGear('P2', P2Gear, { group: 'Default' });
 export const P2_HYDROSS_FROST_PRESET = PresetUtils.makePresetGear('Hydross (Frost Resist)', P2HydrossFrostGear, { group: 'Encounter specific' });
 export const P2_HYDROSS_NATURE_PRESET = PresetUtils.makePresetGear('Hydross (Nature Resist)', P2HydrossNatureGear, { group: 'Encounter specific' });
 

@@ -162,7 +162,7 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecFeralBearDruid, {
 		// the APL rotation is more user-friendly and handles CDs, re-shifting, and
 		// on-use items more easily.
 		rotations: [Presets.ROTATION_DEFAULT],
-		gear: [Presets.PRERAID_PRESET, Presets.P1_PRESET, Presets.P2_HYDROSS_FROST_PRESET, Presets.P2_HYDROSS_NATURE_PRESET],
+		gear: [Presets.PRERAID_PRESET, Presets.P1_PRESET, Presets.P2_PRESET, Presets.P2_HYDROSS_FROST_PRESET, Presets.P2_HYDROSS_NATURE_PRESET],
 		builds: [
 				Presets.DEFAULT_PRESET_BUILD,
 				Presets.KARAZHAN_PRESET_BUILD,
