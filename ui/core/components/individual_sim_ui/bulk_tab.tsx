@@ -17,7 +17,7 @@ import { getEmptyGemSocketIconUrl } from '../../proto_utils/gems';
 import { canEquipItem, getEligibleItemSlots, isSecondaryItemSlot } from '../../proto_utils/utils';
 import { RequestTypes } from '../../sim_signal_manager';
 import { TypedEvent } from '../../typed_event';
-import { getEnumValues, isExternal, noop } from '../../utils';
+import { getEnumValues, isExternal, promisePool, sleep } from '../../utils';
 import { ItemData } from '../gear_picker/item_list';
 import SelectorModal from '../gear_picker/selector_modal';
 import { SimTab } from '../sim_tab';
@@ -946,6 +946,7 @@ export class BulkTab extends SimTab {
 
 		this.isRunning = true;
 		this.isCancelling = false;
+		const concurrency = (await this.simUI.sim.shouldUseWasmConcurrency()) ? this.simUI.sim.getWasmConcurrency() : navigator.hardwareConcurrency || 4;
 		this.bulkSimAbortController = new AbortController();
 		const abortSignal = this.bulkSimAbortController.signal;
 		this.bulkSimButton.disabled = true;
@@ -1009,17 +1010,27 @@ export class BulkTab extends SimTab {
 
 			let completedReforges = 1;
 			this.setReforgeProgress(completedReforges, candidateGearSets.length);
-			const reforgeResults = await Promise.all(
-				candidateGearSets.map(async reforgeGear => {
-					const reforgedGear = await this.optimizeReforges(reforgeGear, abortSignal);
-					this.throwIfBulkAborted(abortSignal);
-					completedReforges += 1;
-					this.setReforgeProgress(completedReforges, candidateGearSets.length);
-					return reforgedGear;
-				}),
-			);
+			await sleep(400);
+			const reforgeTasks = candidateGearSets.map(reforgeGear => async () => {
+				const reforgedGear = await this.optimizeReforges(reforgeGear, abortSignal);
+				this.throwIfBulkAborted(abortSignal);
+				completedReforges += 1;
+				this.setReforgeProgress(completedReforges, candidateGearSets.length);
+				return reforgedGear;
+			});
+			const reforgeSettledResults = await promisePool(reforgeTasks, {
+				concurrency,
+			});
+			const rejectedReforge = reforgeSettledResults.find(result => result.status === 'rejected');
+			if (rejectedReforge && rejectedReforge.status === 'rejected') {
+				throw rejectedReforge.reason;
+			}
+			const reforgeResults = reforgeSettledResults
+				.filter((result): result is PromiseFulfilledResult<Gear | null> => result.status === 'fulfilled')
+				.map(result => result.value);
 
 			reforgedGearSets.push(...reforgeResults.filter((gear): gear is Gear => !!gear));
+
 			this.simStart = new Date().getTime();
 			const totalSimRounds = reforgedGearSets.length + 1;
 			const result = await this.runWithBulkAbort(this.runSingleGearSim(this.originalGear, 1, totalSimRounds), abortSignal);
