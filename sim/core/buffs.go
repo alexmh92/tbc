@@ -11,6 +11,15 @@ import (
 	"github.com/wowsims/tbc/sim/core/stats"
 )
 
+// Exclusive categories for resistance buffs — ensures only the highest value applies per school.
+const (
+	ResistanceCategoryArcane = "ResistanceArcane"
+	ResistanceCategoryFire   = "ResistanceFire"
+	ResistanceCategoryFrost  = "ResistanceFrost"
+	ResistanceCategoryNature = "ResistanceNature"
+	ResistanceCategoryShadow = "ResistanceShadow"
+)
+
 type BuffConfig struct {
 	Label             string
 	ActionID          ActionID
@@ -104,7 +113,7 @@ func makeStatBuff(char *Character, config BuffConfig) *Aura {
 		Label:      config.Label,
 		ActionID:   config.ActionID,
 		Duration:   TernaryDuration(config.Duration > 0, config.Duration, NeverExpires),
-		BuildPhase: CharacterBuildPhaseBuffs,
+		BuildPhase: Ternary(config.ActionID.Tag == -1, CharacterBuildPhaseBuffs, CharacterBuildPhaseNone),
 	})
 
 	if config.ExclusiveCategory != "" {
@@ -167,7 +176,7 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 	}
 
 	if partyBuffs.BattleShout != proto.TristateEffect_TristateEffectMissing {
-		boomingVoicePoints := int32(5)
+		boomingVoicePoints := int32(0)
 		aura := BattleShoutAura(
 			char,
 			false,
@@ -177,7 +186,7 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 			false,
 		)
 
-		ApplyFixedUptimeAura(aura, 1, aura.Duration+1, -1)
+		ApplyFixedShoutAura(char, aura, BattleShoutCategory)
 	}
 
 	if partyBuffs.BloodPact != proto.TristateEffect_TristateEffectMissing {
@@ -193,17 +202,17 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 	}
 
 	if partyBuffs.CommandingShout != proto.TristateEffect_TristateEffectMissing {
-		boomingVoicePoints := int32(5)
+		boomingVoicePoints := int32(0)
 
-		aura := MakePermanent(CommandingShoutAura(
+		aura := CommandingShoutAura(
 			char,
 			false,
 			boomingVoicePoints,
 			GetTristateValueFloat(partyBuffs.CommandingShout, 1.0, 1.25),
 			false,
-		))
+		)
 
-		ApplyFixedUptimeAura(aura, 1, aura.Duration, -1)
+		ApplyFixedShoutAura(char, aura, CommandingShoutCategory)
 	}
 
 	if partyBuffs.DevotionAura != proto.TristateEffect_TristateEffectMissing {
@@ -258,14 +267,6 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 		MakePermanent(SanctityAuraBuff(char, false, GetTristateValueInt32(partyBuffs.SanctityAura, 0, 2)))
 	}
 
-	if partyBuffs.FireResistanceAura {
-		MakePermanent(FireResistanceAuraBuff(char, false))
-	}
-
-	if partyBuffs.FrostResistanceAura {
-		MakePermanent(FrostResistanceAuraBuff(char, false))
-	}
-
 	if partyBuffs.StrengthOfEarthTotem != proto.TristateEffect_TristateEffectMissing {
 		MakePermanent(StrengthOfEarthTotemAura(char, GetTristateValueInt32(partyBuffs.StrengthOfEarthTotem, 0, 2), partyBuffs.SoeEnhancement_2Pt4))
 	}
@@ -278,8 +279,36 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 		MakePermanent(TranquilAirTotemAura(char))
 	}
 
+	if partyBuffs.FrostResistanceTotem {
+		MakePermanent(FrostResistanceTotemAura(char))
+	}
+
+	if partyBuffs.NatureResistanceTotem {
+		MakePermanent(NatureResistanceTotemAura(char))
+	}
+
+	if partyBuffs.FireResistanceTotem {
+		MakePermanent(FireResistanceTotemAura(char))
+	}
+
+	if partyBuffs.FrostResistanceAura {
+		MakePermanent(FrostResistanceAura(char, false))
+	}
+
+	if partyBuffs.FireResistanceAura {
+		MakePermanent(FireResistanceAura(char, false))
+	}
+
+	if partyBuffs.ShadowResistanceAura {
+		MakePermanent(ShadowResistanceAura(char, false))
+	}
+
 	if partyBuffs.TrueshotAura {
 		MakePermanent(TrueShotAuraBuff(char))
+	}
+
+	if partyBuffs.AspectOfTheWild {
+		MakePermanent(AspectOfTheWildAura(char))
 	}
 
 	if partyBuffs.WindfuryTotem != proto.TristateEffect_TristateEffectMissing {
@@ -414,7 +443,7 @@ func GiftOfTheWildAura(char *Character, improved bool) *Aura {
 		mod = 1.35
 	}
 
-	return makeStatBuff(char, BuffConfig{
+	aura := makeStatBuff(char, BuffConfig{
 		Label:    "Gift of the Wild",
 		ActionID: ActionID{SpellID: 26991},
 		Stats: []StatConfig{
@@ -424,13 +453,18 @@ func GiftOfTheWildAura(char *Character, improved bool) *Aura {
 			{stats.Agility, 14 * mod, false},
 			{stats.Intellect, 14 * mod, false},
 			{stats.Spirit, 14 * mod, false},
-			{stats.ArcaneResistance, 25 * mod, false},
-			{stats.FireResistance, 25 * mod, false},
-			{stats.FrostResistance, 25 * mod, false},
-			{stats.NatureResistance, 25 * mod, false},
-			{stats.ShadowResistance, 25 * mod, false},
 		},
 	})
+	// Resistance stats use exclusive categories so they don't stack with
+	// dedicated resistance buffs (Shadow Protection, Frost/Nature Resistance
+	// Aura/Totem). Only the highest value applies per school.
+	resistMod := 25 * mod
+	makeExclusiveFlatStatBuff(aura, stats.ArcaneResistance, resistMod, ResistanceCategoryArcane)
+	makeExclusiveFlatStatBuff(aura, stats.FireResistance, resistMod, ResistanceCategoryFire)
+	makeExclusiveFlatStatBuff(aura, stats.FrostResistance, resistMod, ResistanceCategoryFrost)
+	makeExclusiveFlatStatBuff(aura, stats.NatureResistance, resistMod, ResistanceCategoryNature)
+	makeExclusiveFlatStatBuff(aura, stats.ShadowResistance, resistMod, ResistanceCategoryShadow)
+	return aura
 }
 
 func PowerWordFortitudeAura(char *Character, improved bool) *Aura {
@@ -450,12 +484,120 @@ func PowerWordFortitudeAura(char *Character, improved bool) *Aura {
 
 func ShadowProtectionAura(char *Character) *Aura {
 	return makeStatBuff(char, BuffConfig{
-		Label:    "Shadow Protection",
-		ActionID: ActionID{SpellID: 10958},
+		Label:             "Shadow Protection",
+		ActionID:          ActionID{SpellID: 25433},
+		ExclusiveCategory: ResistanceCategoryShadow,
 		Stats: []StatConfig{
-			{stats.ShadowResistance, 60, false},
+			{stats.ShadowResistance, 70, false},
 		},
 	})
+}
+
+func FrostResistanceAura(char *Character, isPlayer bool) *Aura {
+	aura := makeStatBuff(char, BuffConfig{
+		Label:             fmt.Sprintf("Frost Resistance Aura (%s)", Ternary(isPlayer, "Player", "External")),
+		ActionID:          ActionID{SpellID: 27152}.WithTag(TernaryInt32(isPlayer, 1, -1)),
+		ExclusiveCategory: ResistanceCategoryFrost,
+		Stats: []StatConfig{
+			{stats.FrostResistance, 70, false},
+		},
+	})
+
+	aura.NewExclusiveEffect(FrostResistanceAuraCategory, true, ExclusiveEffect{
+		Priority: paladinAuraPriority(isPlayer),
+	})
+
+	if isPlayer {
+		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
+	}
+
+	return aura
+}
+
+func FrostResistanceTotemAura(char *Character) *Aura {
+	return makeStatBuff(char, BuffConfig{
+		Label:             "Frost Resistance Totem",
+		ActionID:          ActionID{SpellID: 25560},
+		ExclusiveCategory: ResistanceCategoryFrost,
+		Stats: []StatConfig{
+			{stats.FrostResistance, 70, false},
+		},
+	})
+}
+
+func NatureResistanceTotemAura(char *Character) *Aura {
+	return makeStatBuff(char, BuffConfig{
+		Label:             "Nature Resistance Totem",
+		ActionID:          ActionID{SpellID: 25574},
+		ExclusiveCategory: ResistanceCategoryNature,
+		Stats: []StatConfig{
+			{stats.NatureResistance, 70, false},
+		},
+	})
+}
+
+func AspectOfTheWildAura(char *Character) *Aura {
+	return makeStatBuff(char, BuffConfig{
+		Label:             "Aspect of the Wild",
+		ActionID:          ActionID{SpellID: 27045},
+		ExclusiveCategory: ResistanceCategoryNature,
+		Stats: []StatConfig{
+			{stats.NatureResistance, 70, false},
+		},
+	})
+}
+
+func FireResistanceTotemAura(char *Character) *Aura {
+	return makeStatBuff(char, BuffConfig{
+		Label:             "Fire Resistance Totem",
+		ActionID:          ActionID{SpellID: 10538},
+		ExclusiveCategory: ResistanceCategoryFire,
+		Stats: []StatConfig{
+			{stats.FireResistance, 70, false},
+		},
+	})
+}
+
+func FireResistanceAura(char *Character, isPlayer bool) *Aura {
+	aura := makeStatBuff(char, BuffConfig{
+		Label:             fmt.Sprintf("Fire Resistance Aura (%s)", Ternary(isPlayer, "Player", "External")),
+		ActionID:          ActionID{SpellID: 27153}.WithTag(TernaryInt32(isPlayer, 1, -1)),
+		ExclusiveCategory: ResistanceCategoryFire,
+		Stats: []StatConfig{
+			{stats.FireResistance, 70, false},
+		},
+	})
+
+	aura.NewExclusiveEffect(FireResistanceAuraCategory, true, ExclusiveEffect{
+		Priority: paladinAuraPriority(isPlayer),
+	})
+
+	if isPlayer {
+		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
+	}
+
+	return aura
+}
+
+func ShadowResistanceAura(char *Character, isPlayer bool) *Aura {
+	aura := makeStatBuff(char, BuffConfig{
+		Label:             fmt.Sprintf("Shadow Resistance Aura (%s)", Ternary(isPlayer, "Player", "External")),
+		ActionID:          ActionID{SpellID: 27151}.WithTag(TernaryInt32(isPlayer, 1, -1)),
+		ExclusiveCategory: ResistanceCategoryShadow,
+		Stats: []StatConfig{
+			{stats.ShadowResistance, 70, false},
+		},
+	})
+
+	aura.NewExclusiveEffect(ShadowResistanceAuraCategory, true, ExclusiveEffect{
+		Priority: paladinAuraPriority(isPlayer),
+	})
+
+	if isPlayer {
+		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
+	}
+
+	return aura
 }
 
 // /////////////////////////////////////////////////////////////////////////
@@ -486,6 +628,7 @@ func BattleShoutAura(char *Character, isPlayer bool, boomingVoicePoints int32, c
 	var ee *ExclusiveEffect
 	aura := char.GetOrRegisterAura(Aura{
 		Label:      fmt.Sprintf("Battle Shout (%s)", Ternary(isPlayer, "Player", "External")),
+		Tag:        BattleShoutCategory,
 		ActionID:   ActionID{SpellID: 2048}.WithTag(TernaryInt32(isPlayer, 0, 1)),
 		Duration:   time.Duration(float64(time.Minute*2) * (1 + 0.1*float64(boomingVoicePoints))),
 		BuildPhase: CharacterBuildPhaseBuffs,
@@ -505,6 +648,42 @@ func BattleShoutAura(char *Character, isPlayer bool, boomingVoicePoints int32, c
 	})
 
 	return aura
+}
+
+func ApplyFixedShoutAura(char *Character, aura *Aura, category string) {
+	aura.ApplyOnInit(func(aura *Aura, sim *Simulation) {
+		auras := char.GetAurasWithTag(category)
+		var playerAura *Aura
+		for _, bsAura := range auras {
+			if bsAura.ActionID.Tag == 0 {
+				playerAura = bsAura
+				break
+			}
+		}
+
+		if playerAura == nil {
+			return
+		}
+
+		playerAura.ApplyOnGain(func(_ *Aura, _ *Simulation) {
+			pa := sim.GetConsumedPendingActionFromPool()
+			pa.NextActionAt = playerAura.ExpiresAt() + char.ReactionTime
+			pa.OnAction = func(sim *Simulation) {
+				aura.Activate(sim)
+
+				StartPeriodicAction(sim, PeriodicActionOptions{
+					Period:   aura.Duration + 1,
+					NumTicks: 1,
+					OnAction: func(sim *Simulation) {
+						aura.Activate(sim)
+					},
+				})
+			}
+			sim.AddPendingAction(pa)
+		})
+	})
+
+	ApplyFixedUptimeAura(aura, 1, aura.Duration+1, -1)
 }
 
 func BloodPactAura(char *Character, improved bool) *Aura {
@@ -541,6 +720,7 @@ func CommandingShoutAura(char *Character, isPlayer bool, boomingVoicePoints int3
 	var ee *ExclusiveEffect
 	aura := char.GetOrRegisterAura(Aura{
 		Label:      fmt.Sprintf("Commanding Shout (%s)", Ternary(isPlayer, "Player", "External")),
+		Tag:        CommandingShoutCategory,
 		ActionID:   ActionID{SpellID: 469}.WithTag(TernaryInt32(isPlayer, 0, 1)),
 		Duration:   time.Duration(float64(time.Minute*2) * (1 + 0.1*float64(boomingVoicePoints))),
 		BuildPhase: CharacterBuildPhaseBuffs,
@@ -563,12 +743,13 @@ func CommandingShoutAura(char *Character, isPlayer bool, boomingVoicePoints int3
 }
 
 var (
-	PaladinAuraCategory         = "PaladinAura"
-	DevotionAuraCategory        = "DevotionAura"
-	RetributionAuraCategory     = "RetributionAura"
-	SanctityAuraCategory        = "SanctityAura"
-	FireResistanceAuraCategory  = "FireResistanceAura"
-	FrostResistanceAuraCategory = "FrostResistanceAura"
+	PaladinAuraCategory          = "PaladinAura"
+	DevotionAuraCategory         = "DevotionAura"
+	RetributionAuraCategory      = "RetributionAura"
+	SanctityAuraCategory         = "SanctityAura"
+	FireResistanceAuraCategory   = "FireResistanceAura"
+	FrostResistanceAuraCategory  = "FrostResistanceAura"
+	ShadowResistanceAuraCategory = "ShadowResistanceAura"
 )
 
 // paladinAuraPriority returns the exclusivity priority used for self/external
@@ -689,48 +870,6 @@ func RetributionAuraBuff(char *Character, isPlayer bool, impRetributionAuraRank 
 	// Self and external share RetributionAuraCategory (SingleAura) so only one
 	// variant's proc trigger fires at a time; self wins via higher priority.
 	aura.NewExclusiveEffect(RetributionAuraCategory, true, ExclusiveEffect{
-		Priority: paladinAuraPriority(isPlayer),
-	})
-
-	if isPlayer {
-		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
-	}
-
-	return aura
-}
-
-func FireResistanceAuraBuff(char *Character, isPlayer bool) *Aura {
-	actionID := ActionID{SpellID: 27153}.WithTag(TernaryInt32(isPlayer, 0, -1))
-
-	aura := char.GetOrRegisterAura(Aura{
-		Label:      fmt.Sprintf("Fire Resistance Aura (%s)", Ternary(isPlayer, "Player", "External")),
-		ActionID:   actionID,
-		Duration:   NeverExpires,
-		BuildPhase: Ternary(isPlayer, CharacterBuildPhaseNone, CharacterBuildPhaseBuffs),
-	}).AttachStatBuff(stats.FireResistance, 70)
-
-	aura.NewExclusiveEffect(FireResistanceAuraCategory, true, ExclusiveEffect{
-		Priority: paladinAuraPriority(isPlayer),
-	})
-
-	if isPlayer {
-		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
-	}
-
-	return aura
-}
-
-func FrostResistanceAuraBuff(char *Character, isPlayer bool) *Aura {
-	actionID := ActionID{SpellID: 27152}.WithTag(TernaryInt32(isPlayer, 0, -1))
-
-	aura := char.GetOrRegisterAura(Aura{
-		Label:      fmt.Sprintf("Frost Resistance Aura (%s)", Ternary(isPlayer, "Player", "External")),
-		ActionID:   actionID,
-		Duration:   NeverExpires,
-		BuildPhase: Ternary(isPlayer, CharacterBuildPhaseNone, CharacterBuildPhaseBuffs),
-	}).AttachStatBuff(stats.FrostResistance, 70)
-
-	aura.NewExclusiveEffect(FrostResistanceAuraCategory, true, ExclusiveEffect{
 		Priority: paladinAuraPriority(isPlayer),
 	})
 

@@ -10,6 +10,7 @@ import {
 	APLActionCastAllStatBuffCooldowns,
 	APLActionCastFriendlySpell,
 	APLActionCastSpell,
+	APLActionBearOptimalRotationAction,
 	APLActionCatOptimalRotationAction,
 	APLActionChangeTarget,
 	APLActionChannelSpell,
@@ -301,7 +302,7 @@ function actionListFieldConfig(field: string): AplHelpers.APLPickerBuilderFieldC
 					index: number,
 					config: ListItemPickerConfig<Player<any>, APLAction>,
 				) => new APLActionPicker(parent, player, config),
-				allowedActions: ['create', 'delete', 'move'],
+				allowedActions: ['create', 'copy', 'delete', 'move'],
 				actions: {
 					create: {
 						useIcon: true,
@@ -673,6 +674,19 @@ const actionKindFactories: { [f in NonNullable<APLActionKind>]: ActionKindConfig
 			}),
 		],
 	}),
+	bearOptimalRotationAction: {
+		label: '',
+		submenu: undefined,
+		shortDescription: '',
+		fullDescription: undefined,
+		includeIf: (_player: Player<any>, _isPrepull: boolean) => false, // Never show in UI; used internally by simple rotation
+		newValue: function (): APLActionBearOptimalRotationAction {
+			throw new Error('Function not implemented.');
+		},
+		factory: function (parent: HTMLElement, player: Player<any>, config: InputConfig<Player<any>, APLActionBearOptimalRotationAction, APLActionBearOptimalRotationAction>): Input<Player<any>, APLActionBearOptimalRotationAction, APLActionBearOptimalRotationAction> {
+			throw new Error('Function not implemented.');
+		}
+	},
 	catOptimalRotationAction: {
 		label: '',
 		submenu: undefined,

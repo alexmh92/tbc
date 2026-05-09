@@ -6,8 +6,19 @@ func MapResistanceToStat(index int) (proto.Stat, bool) {
 	switch index {
 	case 0:
 		return proto.Stat_StatBonusArmor, true
+	// 1 = Holy (no proto stat)
+	case 2:
+		return proto.Stat_StatFireResistance, true
+	case 3:
+		return proto.Stat_StatNatureResistance, true
+	case 4:
+		return proto.Stat_StatFrostResistance, true
+	case 5:
+		return proto.Stat_StatShadowResistance, true
+	case 6:
+		return proto.Stat_StatArcaneResistance, true
 	}
-	return proto.Stat_StatBonusArmor, false
+	return 0, false
 }
 
 var MapArmorSubclassToArmorType = map[int]proto.ArmorType{
@@ -230,7 +241,15 @@ type EnchantMetaType struct {
 	WeaponType proto.WeaponType
 }
 
-var SpellSchoolToStat = map[SpellSchool]proto.Stat{
+var SpellSchoolToSpellDamageStat = map[SpellSchool]proto.Stat{
+	FIRE:     proto.Stat_StatFireDamage,
+	ARCANE:   proto.Stat_StatArcaneDamage,
+	NATURE:   proto.Stat_StatNatureDamage,
+	FROST:    proto.Stat_StatFrostDamage,
+	SHADOW:   proto.Stat_StatShadowDamage,
+	PHYSICAL: proto.Stat_StatPhysicalDamage,
+}
+var SpellSchoolToResistanceStat = map[SpellSchool]proto.Stat{
 	FIRE:     proto.Stat_StatFireResistance,
 	ARCANE:   proto.Stat_StatArcaneResistance,
 	NATURE:   proto.Stat_StatNatureResistance,
@@ -238,6 +257,7 @@ var SpellSchoolToStat = map[SpellSchool]proto.Stat{
 	SHADOW:   proto.Stat_StatShadowResistance,
 	PHYSICAL: proto.Stat_StatArmor,
 }
+
 var MapInventoryTypeToEnchantMetaType = map[InventoryTypeFlag]EnchantMetaType{
 	HEAD:     {ItemType: proto.ItemType_ItemTypeHead, WeaponType: proto.WeaponType_WeaponTypeUnknown},
 	NECK:     {ItemType: proto.ItemType_ItemTypeNeck, WeaponType: proto.WeaponType_WeaponTypeUnknown},

@@ -36,9 +36,9 @@ export const AuraInput = <SpecType extends PaladinSimpleSpec>(labelTooltip: stri
 			{ actionId: ActionId.fromSpellId(27149), value: PaladinAura.DevotionAura, tooltip: 'Devotion Aura' },
 			{ actionId: ActionId.fromSpellId(27150), value: PaladinAura.RetributionAura, tooltip: 'Retribution Aura' },
 			{ actionId: ActionId.fromSpellId(19746), value: PaladinAura.ConcentrationAura, tooltip: 'Concentration Aura' },
-			{ actionId: ActionId.fromSpellId(27153), value: PaladinAura.FireResistanceAura, tooltip: 'Fire Resistance Aura' },
-			{ actionId: ActionId.fromSpellId(27152), value: PaladinAura.FrostResistanceAura, tooltip: 'Frost Resistance Aura' },
-			{ actionId: ActionId.fromSpellId(27151), value: PaladinAura.ShadowResistanceAura, tooltip: 'Shadow Resistance Aura' },
+			{ actionId: ActionId.fromSpellId(27153, 0, 1), value: PaladinAura.FireResistanceAura, tooltip: 'Fire Resistance Aura' },
+			{ actionId: ActionId.fromSpellId(27152, 0, 1), value: PaladinAura.FrostResistanceAura, tooltip: 'Frost Resistance Aura' },
+			{ actionId: ActionId.fromSpellId(27151, 0, 1), value: PaladinAura.ShadowResistanceAura, tooltip: 'Shadow Resistance Aura' },
 			{
 				actionId: ActionId.fromSpellId(20218),
 				value: PaladinAura.SanctityAura,

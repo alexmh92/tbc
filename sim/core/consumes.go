@@ -387,10 +387,6 @@ func registerConjuredCD(agent Agent, consumes *proto.ConsumesSpec) {
 			conjuredMCD = makeConjuredActivationSpell(conjuredId, character)
 		}
 
-		if consumes.NightmareSeed {
-			conjuredMCD = makeConjuredActivationSpell(22797, character)
-		}
-
 		if conjuredMCD.Spell != nil {
 			oldShouldActivate := conjuredMCD.ShouldActivate
 			conjuredMCD.ShouldActivate = func(sim *Simulation, character *Character) bool {
@@ -585,6 +581,7 @@ func (character *Character) newBasicExplosiveSpellConfig(sharedTimer *Timer, act
 		ActionID:     actionID,
 		SpellSchool:  school,
 		ProcMask:     ProcMaskEmpty,
+		Flags:        SpellFlagExplosive,
 		MissileSpeed: speed,
 
 		Cast: CastConfig{
@@ -698,9 +695,13 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 			character.AutoAttacks.OH().BaseDamageMin += 12
 		}
 
-		if imbueId == 34340 && character.AutoAttacks.Ranged() != nil {
+		if character.AutoAttacks.Ranged() != nil {
 			character.AutoAttacks.Ranged().BaseDamageMin += 12
 			character.AutoAttacks.Ranged().BaseDamageMax += 12
+
+			if imbueId == 29453 {
+				character.AddStat(stats.RangedCritPercent, -(14 / PhysicalCritRatingPerCritPercent))
+			}
 		}
 	case 28891: // Consecrated Sharpening Stone
 		character.Env.RegisterPostFinalizeEffect(func() {

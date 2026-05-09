@@ -41,7 +41,7 @@ character_stats_results: {
   final_stats: 33.75
   final_stats: 33.75
   final_stats: 33.75
-  final_stats: 93.75
+  final_stats: 70
   final_stats: 0
   final_stats: 6.0878
   final_stats: 3
@@ -813,6 +813,14 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestHunter-AllItems-IceGuard-2682"
+ value: {
+  dps: 3097.74299
+  tps: 2096.66232
+  dtps: 12.94364
+ }
+}
+dps_results: {
  key: "TestHunter-AllItems-IconofUnyieldingCourage-28121"
  value: {
   dps: 3047.18394
@@ -901,6 +909,22 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestHunter-AllItems-MarkoftheChampion-23206"
+ value: {
+  dps: 3029.32082
+  tps: 2031.00015
+  dtps: 13.20193
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-MarkoftheChampion-23207"
+ value: {
+  dps: 3029.32082
+  tps: 2031.00015
+  dtps: 13.20193
+ }
+}
+dps_results: {
  key: "TestHunter-AllItems-MasqueradeGown-28578"
  value: {
   dps: 2975.11202
@@ -986,6 +1010,46 @@ dps_results: {
   dps: 3029.32082
   tps: 2031.00015
   dtps: 13.20193
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-PendantofFrozenFlame-24092"
+ value: {
+  dps: 3079.68133
+  tps: 2077.43602
+  dtps: 13.24748
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-PendantofShadow'sEnd-24097"
+ value: {
+  dps: 3079.68133
+  tps: 2077.43602
+  dtps: 13.24748
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-PendantofThawing-24093"
+ value: {
+  dps: 3079.68133
+  tps: 2077.43602
+  dtps: 13.24748
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-PendantofWithering-24095"
+ value: {
+  dps: 3079.68133
+  tps: 2077.43602
+  dtps: 13.24748
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-PendantoftheNullRune-24098"
+ value: {
+  dps: 3079.68133
+  tps: 2077.43602
+  dtps: 13.24748
  }
 }
 dps_results: {
@@ -1082,6 +1146,14 @@ dps_results: {
   dps: 3038.8904
   tps: 2039.29938
   dtps: 13.20193
+ }
+}
+dps_results: {
+ key: "TestHunter-AllItems-SavageGuard-2681"
+ value: {
+  dps: 3097.74299
+  tps: 2096.66232
+  dtps: 12.94364
  }
 }
 dps_results: {

@@ -114,7 +114,7 @@ func (war *Warrior) makeQueueSpellsAndAura(srcSpell *core.Spell) *core.Spell {
 		ActionID:    srcSpell.ActionID.WithTag(1),
 		SpellSchool: core.SpellSchoolPhysical,
 		ProcMask:    core.ProcMaskMeleeMHSpecial,
-		Flags:       core.SpellFlagMeleeMetrics | core.SpellFlagAPL,
+		Flags:       core.SpellFlagMeleeMetrics | core.SpellFlagAPL | core.SpellFlagNoMetrics,
 
 		Cast: core.CastConfig{
 			DefaultCast: core.Cast{
@@ -149,6 +149,7 @@ func (war *Warrior) makeQueueSpellsAndAura(srcSpell *core.Spell) *core.Spell {
 // Returns true if the regular melee swing should be used, false otherwise.
 func (war *Warrior) TryHSOrCleave(sim *core.Simulation, mhSwingSpell *core.Spell) *core.Spell {
 	if !war.curQueueAura.IsActive() || (mhSwingSpell.ActionID.Tag != 1 && mhSwingSpell.ActionID.Tag != 12281) {
+		war.PseudoStats.DisableDWMissPenalty = false
 		return mhSwingSpell
 	}
 

@@ -95,6 +95,21 @@ export const DevotionAura = makeTristatePartyBuffInput({
 	fieldName: 'devotionAura',
 	label: 'Devotion Aura',
 });
+export const FrostResistanceAura = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(27152),
+	fieldName: 'frostResistanceAura',
+	label: 'Frost Resistance Aura',
+});
+export const FireResistanceAura = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(27153),
+	fieldName: 'fireResistanceAura',
+	label: 'Fire Resistance Aura',
+});
+export const ShadowResistanceAura = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(27151),
+	fieldName: 'shadowResistanceAura',
+	label: 'Shadow Resistance Aura',
+});
 export const DraeneiRacialCaster = makeBooleanPartyBuffInput({
 	actionId: () => ActionId.fromSpellId(28878),
 	fieldName: 'draeneiRacialCaster',
@@ -109,16 +124,6 @@ export const DraeneiRacialMelee = makeBooleanPartyBuffInput({
 });
 export const EyeOfTheNight = makeBooleanPartyBuffInput({ actionId: () => ActionId.fromSpellId(31033), fieldName: 'eyeOfTheNight', label: 'Eye of the Night' });
 export const FerociousInspiration = makeMultistatePartyBuffInput(ActionId.fromSpellId(34460), 5, 'ferociousInspiration', 'Ferocious Inspiratation');
-export const FireResistanceAura = makeBooleanPartyBuffInput({
-	actionId: () => ActionId.fromSpellId(27153),
-	fieldName: 'fireResistanceAura',
-	label: 'Fire Resistance Aura',
-});
-export const FrostResistanceAura = makeBooleanPartyBuffInput({
-	actionId: () => ActionId.fromSpellId(27152),
-	fieldName: 'frostResistanceAura',
-	label: 'Frost Resistance Aura',
-});
 export const GraceOfAirTotem = makeTristatePartyBuffInput({
 	actionId: () => ActionId.fromSpellId(25359),
 	impId: ActionId.fromSpellId(16295),
@@ -171,6 +176,26 @@ export const StrengthOfEarthTotem = makeQuadstatePartyBuffInput({
 });
 export const TotemOfWrath = makeMultistatePartyBuffInput(ActionId.fromSpellId(30706), 5, 'totemOfWrath', 'Totem of Wrath');
 export const TrueshotAura = makeBooleanPartyBuffInput({ actionId: () => ActionId.fromSpellId(27066), fieldName: 'trueshotAura', label: 'Trueshot Aura' });
+export const AspectOfTheWild = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(27045),
+	fieldName: 'aspectOfTheWild',
+	label: 'Aspect of the Wild',
+});
+export const FrostResistanceTotem = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(25560),
+	fieldName: 'frostResistanceTotem',
+	label: 'Frost Resistance Totem',
+});
+export const NatureResistanceTotem = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(25574),
+	fieldName: 'natureResistanceTotem',
+	label: 'Nature Resistance Totem',
+});
+export const FireResistanceTotem = makeBooleanPartyBuffInput({
+	actionId: () => ActionId.fromSpellId(10538),
+	fieldName: 'fireResistanceTotem',
+	label: 'Fire Resistance Totem',
+});
 export const WrathOfAirTotem = makeTristatePartyBuffInput({
 	actionId: () => ActionId.fromSpellId(3738),
 	impId: ActionId.fromSpellId(37212),
@@ -400,6 +425,41 @@ export const PARTY_BUFFS_CONFIG = [
 		config: DrumsBuff,
 		picker: IconEnumPicker,
 		stats: [],
+	},
+	{
+		config: FrostResistanceTotem,
+		picker: IconPicker,
+		stats: [Stat.StatFrostResistance],
+	},
+	{
+		config: NatureResistanceTotem,
+		picker: IconPicker,
+		stats: [Stat.StatNatureResistance],
+	},
+	{
+		config: FireResistanceTotem,
+		picker: IconPicker,
+		stats: [Stat.StatFireResistance],
+	},
+	{
+		config: FrostResistanceAura,
+		picker: IconPicker,
+		stats: [Stat.StatFrostResistance],
+	},
+	{
+		config: FireResistanceAura,
+		picker: IconPicker,
+		stats: [Stat.StatFireResistance],
+	},
+	{
+		config: ShadowResistanceAura,
+		picker: IconPicker,
+		stats: [Stat.StatShadowResistance],
+	},
+    {
+		config: AspectOfTheWild,
+		picker: IconPicker,
+		stats: [Stat.StatNatureResistance],
 	},
 ] as PickerStatOptions[];
 

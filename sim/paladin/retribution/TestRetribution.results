@@ -41,7 +41,7 @@ character_stats_results: {
   final_stats: 38.75
   final_stats: 38.75
   final_stats: 38.75
-  final_stats: 98.75
+  final_stats: 75
   final_stats: 0
   final_stats: 6.80488
   final_stats: 6
@@ -798,6 +798,14 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestRetribution-AllItems-IceGuard-2682"
+ value: {
+  dps: 1904.45854
+  tps: 1500.64167
+  dtps: 14.53862
+ }
+}
+dps_results: {
  key: "TestRetribution-AllItems-IconofUnyieldingCourage-28121"
  value: {
   dps: 1840.69594
@@ -998,6 +1006,22 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestRetribution-AllItems-MarkoftheChampion-23206"
+ value: {
+  dps: 1829.7388
+  tps: 1443.63742
+  dtps: 14.34107
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-MarkoftheChampion-23207"
+ value: {
+  dps: 1829.7388
+  tps: 1443.63742
+  dtps: 14.34107
+ }
+}
+dps_results: {
  key: "TestRetribution-AllItems-MasqueradeGown-28578"
  value: {
   dps: 1843.9883
@@ -1102,6 +1126,46 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestRetribution-AllItems-PendantofFrozenFlame-24092"
+ value: {
+  dps: 1880.10902
+  tps: 1482.2856
+  dtps: 14.53862
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-PendantofShadow'sEnd-24097"
+ value: {
+  dps: 1880.10902
+  tps: 1482.2856
+  dtps: 14.53862
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-PendantofThawing-24093"
+ value: {
+  dps: 1880.10902
+  tps: 1482.2856
+  dtps: 14.53862
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-PendantofWithering-24095"
+ value: {
+  dps: 1880.10902
+  tps: 1482.2856
+  dtps: 14.53862
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-PendantoftheNullRune-24098"
+ value: {
+  dps: 1880.10902
+  tps: 1482.2856
+  dtps: 14.53862
+ }
+}
+dps_results: {
  key: "TestRetribution-AllItems-PendantoftheVioletEye-28727"
  value: {
   dps: 1829.7388
@@ -1187,6 +1251,14 @@ dps_results: {
   dps: 1836.55236
   tps: 1448.96133
   dtps: 14.34107
+ }
+}
+dps_results: {
+ key: "TestRetribution-AllItems-SavageGuard-2681"
+ value: {
+  dps: 1904.45854
+  tps: 1500.64167
+  dtps: 14.53862
  }
 }
 dps_results: {

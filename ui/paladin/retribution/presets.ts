@@ -13,11 +13,7 @@ import {
 	Spec,
 	Drums,
 } from '../../core/proto/common';
-import {
-	PaladinAura,
-	RetributionPaladin_Options as RetributionPaladinOptions,
-	RetributionPaladin_Rotation as PaladinRotation,
-} from '../../core/proto/paladin';
+import { PaladinAura, RetributionPaladin_Options as RetributionPaladinOptions, RetributionPaladin_Rotation as PaladinRotation } from '../../core/proto/paladin';
 import { SavedTalents } from '../../core/proto/ui';
 import { Stats } from '../../core/proto_utils/stats';
 import DefaultApl from './apls/default.apl.json';

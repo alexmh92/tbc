@@ -2,7 +2,6 @@ package paladin
 
 import (
 	"github.com/wowsims/tbc/sim/core"
-	"github.com/wowsims/tbc/sim/core/stats"
 )
 
 func (paladin *Paladin) registerAuras() {
@@ -86,7 +85,7 @@ func (paladin *Paladin) registerConcentrationAura() {
 // Gives 70 fire resistance to party members within 30 yards.
 // Players may only have one Aura on them per Paladin at any one time.
 func (paladin *Paladin) registerFireResistanceAura() {
-	aura := core.FireResistanceAuraBuff(&paladin.Character, true)
+	aura := core.FireResistanceAura(&paladin.Character, true)
 	paladin.registerAuraSpell(aura, SpellMaskFireResistanceAura)
 }
 
@@ -96,15 +95,17 @@ func (paladin *Paladin) registerFireResistanceAura() {
 // Gives 70 frost resistance to party members within 30 yards.
 // Players may only have one Aura on them per Paladin at any one time.
 func (paladin *Paladin) registerFrostResistanceAura() {
-	aura := core.FrostResistanceAuraBuff(&paladin.Character, true)
+	aura := core.FrostResistanceAura(&paladin.Character, true)
 	paladin.registerAuraSpell(aura, SpellMaskFrostResistanceAura)
 }
 
 // Shadow Resistance Aura
 // https://www.wowhead.com/tbc/spell=27151
+//
+// Gives 70 shadow resistance to party members within 30 yards.
+// Players may only have one Aura on them per Paladin at any one time.
 func (paladin *Paladin) registerShadowResistanceAura() {
-	aura := paladin.registerSelfCastAura("Shadow Resistance Aura", core.ActionID{SpellID: 27151}).
-		AttachStatBuff(stats.ShadowResistance, 70)
+	aura := core.ShadowResistanceAura(&paladin.Character, true)
 	paladin.registerAuraSpell(aura, SpellMaskShadowResistanceAura)
 }
 

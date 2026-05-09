@@ -43,6 +43,18 @@ const AURA_SPELL_IDS: Record<PaladinAura, number | null> = {
 	[PaladinAura.SanctityAura]: 20218,
 };
 
+// Tags for each paladin aura option.
+const AURA_TAGS: Record<PaladinAura, number | null> = {
+	[PaladinAura.AuraNone]: 0,
+	[PaladinAura.DevotionAura]: 0,
+	[PaladinAura.RetributionAura]: 0,
+	[PaladinAura.ConcentrationAura]: 0,
+	[PaladinAura.FireResistanceAura]: 1,
+	[PaladinAura.FrostResistanceAura]: 1,
+	[PaladinAura.ShadowResistanceAura]: 1,
+	[PaladinAura.SanctityAura]: 0,
+};
+
 type JudgementSpec = { sealSpellId: number; sealRank: number; judgementAuraSpellId: number; judgementAuraRank: number };
 const JUDGEMENT_CONFIG: Record<PaladinJudgement, JudgementSpec | null> = {
 	[PaladinJudgement.JudgementNone]: null,
@@ -271,6 +283,7 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 			const auraCast = (rotation.prepullActions[PREPULL_AURA_INDEX].action!.action as any).castSpell;
 			auraCast.spellId.rawId = { oneofKind: 'spellId', spellId: auraSpellId };
 			auraCast.spellId.rank = 0;
+			auraCast.spellId.tag = AURA_TAGS[aura];
 		}
 
 		// Drop Consecration when disabled, and the prepull aura when the user
