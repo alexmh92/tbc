@@ -247,6 +247,7 @@ var SpellSchoolToSpellDamageStat = map[SpellSchool]proto.Stat{
 	NATURE:   proto.Stat_StatNatureDamage,
 	FROST:    proto.Stat_StatFrostDamage,
 	SHADOW:   proto.Stat_StatShadowDamage,
+	HOLY:     proto.Stat_StatHolyDamage,
 	PHYSICAL: proto.Stat_StatPhysicalDamage,
 }
 var SpellSchoolToResistanceStat = map[SpellSchool]proto.Stat{

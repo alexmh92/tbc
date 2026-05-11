@@ -6,12 +6,12 @@ character_stats_results: {
   final_stats: 1489.86816
   final_stats: 250.69
   final_stats: 603.229
-  final_stats: 693.229
+  final_stats: 613.229
+  final_stats: 80
   final_stats: 0
   final_stats: 0
-  final_stats: 0
-  final_stats: 0
-  final_stats: 0
+  final_stats: 80
+  final_stats: 80
   final_stats: 0
   final_stats: 0
   final_stats: 73
@@ -265,14 +265,6 @@ dps_results: {
  value: {
   dps: 873.00183
   tps: 1519.24327
-  dtps: 1189.98077
- }
-}
-dps_results: {
- key: "TestProtection-AllItems-Biznicks247x128Accurascope-2523"
- value: {
-  dps: 856.39459
-  tps: 1502.63602
   dtps: 1189.98077
  }
 }
@@ -1409,8 +1401,8 @@ dps_results: {
 dps_results: {
  key: "TestProtection-AllItems-SkullflameShield-1168"
  value: {
-  dps: 863.90421
-  tps: 1514.1622
+  dps: 863.00368
+  tps: 1513.26167
   dtps: 1371.41203
  }
 }
@@ -1449,6 +1441,14 @@ dps_results: {
 }
 dps_results: {
  key: "TestProtection-AllItems-StabilitzedEterniumScope-2724"
+ value: {
+  dps: 856.39459
+  tps: 1502.63602
+  dtps: 1189.98077
+ }
+}
+dps_results: {
+ key: "TestProtection-AllItems-StabilizedEterniumScope-2523"
  value: {
   dps: 856.39459
   tps: 1502.63602

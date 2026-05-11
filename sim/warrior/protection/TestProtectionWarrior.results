@@ -269,14 +269,6 @@ dps_results: {
  }
 }
 dps_results: {
- key: "TestProtectionWarrior-AllItems-Biznicks247x128Accurascope-2523"
- value: {
-  dps: 770.62659
-  tps: 1417.55289
-  dtps: 1282.67504
- }
-}
-dps_results: {
  key: "TestProtectionWarrior-AllItems-BlackenedNaaruSliver-34427"
  value: {
   dps: 767.19166
@@ -895,9 +887,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-Loatheb'sReflection-23042"
  value: {
-  dps: 736.54783
-  tps: 1358.74744
-  dtps: 1271.44259
+  dps: 735.82001
+  tps: 1357.30585
+  dtps: 1271.96528
  }
 }
 dps_results: {
@@ -1047,9 +1039,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-PendantofFrozenFlame-24092"
  value: {
-  dps: 771.60075
-  tps: 1419.39945
-  dtps: 1313.17393
+  dps: 771.23497
+  tps: 1419.0143
+  dtps: 1311.71796
  }
 }
 dps_results: {
@@ -1271,9 +1263,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-SkullflameShield-1168"
  value: {
-  dps: 759.60861
-  tps: 1401.75843
-  dtps: 1425.0021
+  dps: 759.13381
+  tps: 1400.94944
+  dtps: 1424.93195
  }
 }
 dps_results: {
@@ -1319,6 +1311,14 @@ dps_results: {
 }
 dps_results: {
  key: "TestProtectionWarrior-AllItems-StabilitzedEterniumScope-2724"
+ value: {
+  dps: 770.62659
+  tps: 1417.55289
+  dtps: 1282.67504
+ }
+}
+dps_results: {
+ key: "TestProtectionWarrior-AllItems-StabilizedEterniumScope-2523"
  value: {
   dps: 770.62659
   tps: 1417.55289
