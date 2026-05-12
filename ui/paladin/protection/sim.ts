@@ -27,9 +27,10 @@ const CONSECRATION_RANK_SPELL_IDS: Record<number, number> = {
 // relies on these — if you reorder the APL, update these too.
 const PREPULL_AURA_INDEX = 1; // Devotion Aura at -18.5s
 const PREPULL_SEAL_INDEX = 2; // Seal of Righteousness at -3s
-const PRIORITY_JUDGE_ON_SEAL_INDEX = 0; // Const-false-gated: when maintenance seal is up, judge it
-const PRIORITY_SWAP_SEAL_INDEX = 2; // Const-false-gated: when maintenance seal is down, JoX is down, and Judgement is ready, swap to maintenance seal
-const PRIORITY_CONSECRATION_INDEX = 5; // Consecration rank 6
+const PRIORITY_JUDGE_ON_SEAL_INDEX = 0; // When maintenance seal is up, judge it
+const PRIORITY_SWAP_SEAL_INDEX = 4; // When maintenance seal is down, JoX is down, and Judgement is ready, swap to maintenance seal
+const PRIORITY_RIGHTEOUSNESS_JUDGE_INDEX = 7; // Judge -> Re-seal Righteousness
+const PRIORITY_CONSECRATION_INDEX = 6; // Consecration rank 6
 
 // SpellIDs for each paladin aura option.
 const AURA_SPELL_IDS: Record<PaladinAura, number | null> = {
@@ -58,8 +59,8 @@ const AURA_TAGS: Record<PaladinAura, number | null> = {
 type JudgementSpec = { sealSpellId: number; sealRank: number; judgementAuraSpellId: number; judgementAuraRank: number };
 const JUDGEMENT_CONFIG: Record<PaladinJudgement, JudgementSpec | null> = {
 	[PaladinJudgement.JudgementNone]: null,
-	[PaladinJudgement.JudgementOfLight]: { sealSpellId: 27160, sealRank: 5, judgementAuraSpellId: 27163, judgementAuraRank: 0 },
-	[PaladinJudgement.JudgementOfWisdom]: { sealSpellId: 27166, sealRank: 4, judgementAuraSpellId: 27164, judgementAuraRank: 0 },
+	[PaladinJudgement.JudgementOfLight]: { sealSpellId: 27160, sealRank: 5, judgementAuraSpellId: 27162, judgementAuraRank: 5 },
+	[PaladinJudgement.JudgementOfWisdom]: { sealSpellId: 27166, sealRank: 4, judgementAuraSpellId: 27164, judgementAuraRank: 4 },
 };
 
 const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
@@ -206,8 +207,8 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 		const {
 			prioritizeHolyShield = true,
 			consecrationRank = 6,
-			useExorcism = false,
-			useAvengersShield = true,
+			useExorcism = true,
+			useAvengersShield = false,
 			maintainJudgement = PaladinJudgement.JudgementNone,
 			aura: rawAura = PaladinAura.DevotionAura,
 		} = simple;
@@ -216,13 +217,14 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 		// talent (e.g. dropped the point after selecting), fall back to None.
 		const aura = rawAura === PaladinAura.SanctityAura && !player.getTalents().sanctityAura ? PaladinAura.AuraNone : rawAura;
 
+		const judgementConfig = JUDGEMENT_CONFIG[maintainJudgement];
+
 		rotation.valueVariables = [
 			APLValueVariable.fromJson({ name: 'Prioritize Holy Shield', value: { const: { val: String(prioritizeHolyShield) } } }),
 			APLValueVariable.fromJson({ name: 'Use Exorcism', value: { const: { val: String(useExorcism) } } }),
 			APLValueVariable.fromJson({ name: "Use Avenger's Shield", value: { const: { val: String(useAvengersShield) } } }),
+			APLValueVariable.fromJson({ name: 'Maintain Judgement', value: { const: { val: String(!!judgementConfig) } } }),
 		];
-
-		const judgementConfig = JUDGEMENT_CONFIG[maintainJudgement];
 
 		// For Light/Wisdom we activate the two maintenance actions that are
 		// dormant in the default APL:
@@ -253,7 +255,6 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 			const sealActiveAuraId = (sealActiveCheck.value as any).auraIsActive.auraId;
 			sealActiveAuraId.rawId = { oneofKind: 'spellId', spellId: judgementConfig.sealSpellId };
 			sealActiveAuraId.rank = judgementConfig.sealRank;
-			judgeCondition.vals = judgeCondition.vals.slice(1);
 
 			// Swap-seal: unwrap the AND keeping [SoW inactive, JoX missing, Judgement ready]. Swap the seal and debuff auras.
 			const swapEntry = rotation.priorityList[PRIORITY_SWAP_SEAL_INDEX];
@@ -264,10 +265,18 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 			const judgementInactiveAuraId = (swapAndVals[2].value as any).auraIsInactive.auraId;
 			judgementInactiveAuraId.rawId = { oneofKind: 'spellId', spellId: judgementConfig.judgementAuraSpellId };
 			judgementInactiveAuraId.rank = judgementConfig.judgementAuraRank;
-			(swapEntry.action!.condition!.value as any).and.vals = swapAndVals.slice(1);
+			// (swapEntry.action!.condition!.value as any).and.vals = swapAndVals.slice(1);
 			const swapSealCast = (swapEntry.action!.action as any).castSpell;
 			swapSealCast.spellId.rawId = { oneofKind: 'spellId', spellId: judgementConfig.sealSpellId };
 			swapSealCast.spellId.rank = judgementConfig.sealRank;
+
+			// Righteousness judge: replace target aura spell check with judgement aura
+			const righteousnessJudgeEntry = rotation.priorityList[PRIORITY_RIGHTEOUSNESS_JUDGE_INDEX];
+			const judgeAndVals = (righteousnessJudgeEntry.action!.condition!.value as any).and.vals;
+			const orVals = (judgeAndVals[2].value as any).or.vals;
+			const auraRemainingTime = (orVals[1].value as any).cmp.lhs.value.auraRemainingTime.auraId;
+			auraRemainingTime.rawId = { oneofKind: 'spellId', spellId: judgementConfig.judgementAuraSpellId };
+			auraRemainingTime.rank = judgementConfig.judgementAuraRank;
 		}
 
 		// Consecration rank swap (removal handled by the filter below).
