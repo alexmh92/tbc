@@ -1260,6 +1260,33 @@ export class ReforgeOptimizer {
 		return reforgeSoftCaps;
 	}
 
+	private static getMetaGemColorCounts(gems: Gem[]): Map<GemColor, number> {
+		const counts = new Map<GemColor, number>();
+		for (const gem of gems) {
+			for (const color of gemColorsToMatchingSocket.get(gem.color) || []) {
+				counts.set(color, (counts.get(color) || 0) + 1);
+			}
+		}
+		return counts;
+	}
+
+	private static addMetaGemColorCoefficients(coefficients: YalpsCoefficients, gem: Gem, compareColorGreater: GemColor, compareColorLesser: GemColor) {
+		const colors = gemColorsToMatchingSocket.get(gem.color) || [];
+		for (const color of colors) {
+			coefficients.set(`GemColor_${color}`, (coefficients.get(`GemColor_${color}`) || 0) + 1);
+		}
+
+		if (compareColorGreater && compareColorLesser) {
+			let compareValue = 0;
+			if (colors.includes(compareColorGreater)) compareValue += 1;
+			if (colors.includes(compareColorLesser)) compareValue -= 1;
+			if (compareValue != 0) {
+				const key = `GemColorCompare_${compareColorGreater}_${compareColorLesser}`;
+				coefficients.set(key, (coefficients.get(key) || 0) + compareValue);
+			}
+		}
+	}
+
 	buildYalpsVariables(gear: Gear, preCapEPs: Stats, reforgeCaps: Stats, reforgeSoftCaps: StatCap[]): YalpsVariables {
 		const variables = new Map<string, YalpsCoefficients>();
 		const gemsToInclude = this.buildGemOptions(preCapEPs, reforgeCaps, reforgeSoftCaps);
@@ -1272,15 +1299,6 @@ export class ReforgeOptimizer {
 			compareColorGreater = condition.compareColorGreater || 0;
 			compareColorLesser = condition.compareColorLesser || 0;
 		}
-
-		const getColorCompareConstraint = (socketColors: GemColor[]) => {
-			let value = 0;
-			if (socketColors.filter(c => c != compareColorGreater || c != compareColorLesser).length) {
-				if (socketColors.some(c => c == compareColorGreater)) value = +1;
-				if (socketColors.some(c => c == compareColorLesser)) value = -1;
-			}
-			return value;
-		};
 
 		for (const slot of gear.getItemSlots()) {
 			const item = gear.getEquippedItem(slot);
@@ -1387,16 +1405,9 @@ export class ReforgeOptimizer {
 						const variableKey = `${constraintKey}_${gemData.gem.id}`;
 						const coefficients = new Map<string, number>(gemData.coefficients);
 						coefficients.set(constraintKey, 1);
-
-						const socketColors = gemColorsToMatchingSocket.get(gemData.gem.color) || [];
+						ReforgeOptimizer.addMetaGemColorCoefficients(coefficients, gemData.gem, compareColorGreater, compareColorLesser);
 
 						if (gemMatchesSocket(gemData.gem, socketColor)) {
-							coefficients.set(`GemColor_${socketColor}`, 1);
-							const compareValue = getColorCompareConstraint(socketColors);
-							if (compareValue != 0) {
-								coefficients.set(`GemColorCompare_${compareColorGreater}_${compareColorLesser}`, compareValue);
-							}
-
 							if (forceSocketBonus) {
 								for (const [stat, value] of distributedSocketBonus.entries()) {
 									this.applyReforgeStat(coefficients, stat, value, preCapEPs);
@@ -1404,14 +1415,6 @@ export class ReforgeOptimizer {
 							} else {
 								coefficients.set(`SocketBonusLink_${slot}_${socketIdx}`, -1);
 							}
-						} else if (!forceSocketBonus && socketColors.length) {
-							socketColors?.forEach(() => {
-								coefficients.set(`GemColor_${gemData.gem.color}`, 1);
-								const compareValue = getColorCompareConstraint(socketColors);
-								if (compareValue != 0) {
-									coefficients.set(`GemColorCompare_${compareColorGreater}_${compareColorLesser}`, compareValue);
-								}
-							});
 						}
 
 						if (gemData.isUnique) {
@@ -1599,17 +1602,32 @@ export class ReforgeOptimizer {
 		const metaGem = gear.getMetaGem();
 		if (metaGem?.id) {
 			const { minBlue, minRed, minYellow, compareColorGreater, compareColorLesser } = getMetaGemCondition(metaGem?.id);
+			const fixedGemColorCounts = ReforgeOptimizer.getMetaGemColorCounts(
+				gear
+					.getItemSlots()
+					.flatMap(slot => gear.getEquippedItem(slot)?.gems || [])
+					.filter((gem): gem is Gem => gem?.color !== GemColor.GemColorMeta),
+			);
+
 			if (compareColorGreater && compareColorLesser) {
-				constraints.set(`GemColorCompare_${compareColorGreater}_${compareColorLesser}`, greaterEq(1));
+				const fixedGreater = fixedGemColorCounts.get(compareColorGreater) || 0;
+				const fixedLesser = fixedGemColorCounts.get(compareColorLesser) || 0;
+				const remainingCompare = 1 - (fixedGreater - fixedLesser);
+				if (remainingCompare > 0) {
+					constraints.set(`GemColorCompare_${compareColorGreater}_${compareColorLesser}`, greaterEq(remainingCompare));
+				}
 			}
-			if (minBlue) {
-				constraints.set(`GemColor_${GemColor.GemColorBlue}`, greaterEq(minBlue));
+			const remainingBlue = minBlue - (fixedGemColorCounts.get(GemColor.GemColorBlue) || 0);
+			if (remainingBlue > 0) {
+				constraints.set(`GemColor_${GemColor.GemColorBlue}`, greaterEq(remainingBlue));
 			}
-			if (minRed) {
-				constraints.set(`GemColor_${GemColor.GemColorRed}`, greaterEq(minRed));
+			const remainingRed = minRed - (fixedGemColorCounts.get(GemColor.GemColorRed) || 0);
+			if (remainingRed > 0) {
+				constraints.set(`GemColor_${GemColor.GemColorRed}`, greaterEq(remainingRed));
 			}
-			if (minYellow) {
-				constraints.set(`GemColor_${GemColor.GemColorYellow}`, greaterEq(minYellow));
+			const remainingYellow = minYellow - (fixedGemColorCounts.get(GemColor.GemColorYellow) || 0);
+			if (remainingYellow > 0) {
+				constraints.set(`GemColor_${GemColor.GemColorYellow}`, greaterEq(remainingYellow));
 			}
 		}
 
