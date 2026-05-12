@@ -1260,9 +1260,13 @@ export class ReforgeOptimizer {
 		return reforgeSoftCaps;
 	}
 
-	private static getMetaGemColorCounts(gems: Gem[]): Map<GemColor, number> {
+	private static getMetaGemColorCounts(gems: Array<Gem | null>): Map<GemColor, number> {
 		const counts = new Map<GemColor, number>();
 		for (const gem of gems) {
+			if (!gem) {
+				continue;
+			}
+
 			for (const color of gemColorsToMatchingSocket.get(gem.color) || []) {
 				counts.set(color, (counts.get(color) || 0) + 1);
 			}
