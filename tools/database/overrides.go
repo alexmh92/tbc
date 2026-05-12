@@ -345,6 +345,7 @@ var DenyListNameRegexes = []*regexp.Regexp{
 	regexp.MustCompile(`Zyanite`),
 	regexp.MustCompile(`zzold`),
 	regexp.MustCompile(`Tom's`),
+	regexp.MustCompile(`Stabilized Eternium Scope`),
 }
 
 // Allows manual overriding for Gem fields in case WowHead is wrong.
