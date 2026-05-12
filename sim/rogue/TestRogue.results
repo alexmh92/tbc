@@ -139,8 +139,8 @@ dps_results: {
 dps_results: {
  key: "TestRogue-AllItems-BadgeoftheSwarmguard-21670"
  value: {
-  dps: 1856.74494
-  tps: 1318.28891
+  dps: 1852.95252
+  tps: 1315.59629
  }
 }
 dps_results: {
