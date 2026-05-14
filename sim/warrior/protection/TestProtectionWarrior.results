@@ -119,9 +119,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-Annihilator-12798"
  value: {
-  dps: 682.58432
-  tps: 1322.93077
-  dtps: 1327.95525
+  dps: 696.36862
+  tps: 1343.91921
+  dtps: 1328.96893
  }
 }
 dps_results: {
@@ -295,9 +295,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-BladeofWizardry-31336"
  value: {
-  dps: 660.7272
-  tps: 1275.85579
-  dtps: 1325.57009
+  dps: 669.28878
+  tps: 1288.23566
+  dtps: 1329.70965
  }
 }
 dps_results: {
@@ -1440,8 +1440,8 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-TheTwinBladesofAzzinoth"
  value: {
-  dps: 953.80425
-  tps: 1678.6782
+  dps: 961.97914
+  tps: 1691.1439
   dtps: 2013.22802
  }
 }
