@@ -119,9 +119,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-Annihilator-12798"
  value: {
-  dps: 689.71985
-  tps: 1330.15508
-  dtps: 1347.33638
+  dps: 702.64535
+  tps: 1351.58774
+  dtps: 1350.55481
  }
 }
 dps_results: {
@@ -159,9 +159,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-BadgeoftheSwarmguard-21670"
  value: {
-  dps: 753.753
-  tps: 1385.88579
-  dtps: 1273.5214
+  dps: 745.57983
+  tps: 1372.01544
+  dtps: 1274.45884
  }
 }
 dps_results: {
@@ -295,9 +295,9 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-BladeofWizardry-31336"
  value: {
-  dps: 674.51323
-  tps: 1298.37378
-  dtps: 1341.3233
+  dps: 683.52536
+  tps: 1311.54998
+  dtps: 1337.46264
  }
 }
 dps_results: {
@@ -1440,8 +1440,8 @@ dps_results: {
 dps_results: {
  key: "TestProtectionWarrior-AllItems-TheTwinBladesofAzzinoth"
  value: {
-  dps: 968.72633
-  tps: 1700.48445
+  dps: 976.88177
+  tps: 1712.92006
   dtps: 2042.25286
  }
 }

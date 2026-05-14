@@ -159,8 +159,8 @@ dps_results: {
 dps_results: {
  key: "TestProtection-AllItems-BadgeoftheSwarmguard-21670"
  value: {
-  dps: 766.98003
-  tps: 1310.45859
+  dps: 765.45865
+  tps: 1308.93721
   dtps: 1183.95886
  }
 }
