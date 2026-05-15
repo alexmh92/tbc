@@ -8149,6 +8149,9 @@
                     "threat"
                   ]
                 },
+                "show_gcd": {
+                  "type": "string"
+                },
                 "chart_options": {
                   "type": "object",
                   "properties": {
@@ -8215,6 +8218,7 @@
                 "disclaimer",
                 "note",
                 "chart_types",
+                "show_gcd",
                 "chart_options",
                 "tooltips"
               ]

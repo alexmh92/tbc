@@ -1944,6 +1944,7 @@
 					"dps": "DPS",
 					"threat": "Threat"
 				},
+				"show_gcd": "Show GCD",
 				"chart_options": {
 					"time_axis": "Time (s)",
 					"waiting_for_data": "Waiting for data..."

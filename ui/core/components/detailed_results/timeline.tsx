@@ -38,6 +38,7 @@ export class Timeline extends ResultComponent {
 	private rotationTimelineTimeRulerElem: HTMLCanvasElement | null = null;
 	private readonly rotationHiddenIdsContainer: HTMLElement;
 	private readonly chartPicker: HTMLSelectElement;
+	private readonly showGcdToggle: HTMLInputElement;
 
 	private prevResultData: SimResultData | null;
 	private resultData: SimResultData | null;
@@ -74,17 +75,23 @@ export class Timeline extends ResultComponent {
 					</p>
 					<p>{i18n.t('results_tab.details.timeline.note')}</p>
 				</div>
-				<select className="timeline-chart-picker form-select">
-					<option className="rotation-option" value="rotation">
-						{i18n.t('results_tab.details.timeline.chart_types.rotation')}
-					</option>
-					<option className="dps-option" value="dps">
-						{i18n.t('results_tab.details.timeline.chart_types.dps')}
-					</option>
-					<option className="threat-option" value="threat">
-						{i18n.t('results_tab.details.timeline.chart_types.threat')}
-					</option>
-				</select>
+				<div className="timeline-controls">
+					<label className="timeline-show-gcd form-check m-0">
+						<input className="form-check-input" type="checkbox" />
+						<span className="form-check-label">{i18n.t('results_tab.details.timeline.show_gcd')}</span>
+					</label>
+					<select className="timeline-chart-picker form-select">
+						<option className="rotation-option" value="rotation">
+							{i18n.t('results_tab.details.timeline.chart_types.rotation')}
+						</option>
+						<option className="dps-option" value="dps">
+							{i18n.t('results_tab.details.timeline.chart_types.dps')}
+						</option>
+						<option className="threat-option" value="threat">
+							{i18n.t('results_tab.details.timeline.chart_types.threat')}
+						</option>
+					</select>
+				</div>
 			</div>,
 		);
 
@@ -139,6 +146,13 @@ export class Timeline extends ResultComponent {
 		this.rotationLabels = this.rootElem.querySelector('.rotation-labels')!;
 		this.rotationTimeline = this.rootElem.querySelector('.rotation-timeline')!;
 		this.rotationHiddenIdsContainer = this.rootElem.querySelector('.rotation-hidden-ids')!;
+
+		this.showGcdToggle = this.rootElem.querySelector('.timeline-show-gcd input')!;
+		const syncShowGcd = () => {
+			this.rotationPlotElem.classList.toggle('show-gcd', this.showGcdToggle.checked);
+		};
+		this.showGcdToggle.addEventListener('change', syncShowGcd);
+		syncShowGcd();
 
 		let isMouseDown = false;
 		let startX = 0;
@@ -583,6 +597,8 @@ export class Timeline extends ResultComponent {
 			}
 		});
 
+		this.addGcdStripRow(player, duration);
+
 		const playerCastsByAbility = this.getSortedCastsByAbility(player);
 		playerCastsByAbility.forEach(castLogs => this.addCastRow(castLogs, buffsAndDebuffsById, duration));
 
@@ -605,6 +621,7 @@ export class Timeline extends ResultComponent {
 				this.addSeparatorRow(duration);
 				this.addPetRow(pet.name, duration);
 				orderedResourceTypes.forEach(resourceType => this.addResourceRow(resourceType, pet.groupedResourceLogs[resourceType], duration));
+				this.addGcdStripRow(pet, duration);
 				const petCastsByAbility = this.getSortedCastsByAbility(pet);
 				petCastsByAbility.forEach(castLogs => this.addCastRow(castLogs, buffsAndDebuffsById, duration));
 			});
@@ -789,6 +806,58 @@ export class Timeline extends ResultComponent {
 		this.rotationTimeline.appendChild(rowElem);
 	}
 
+	private addGcdStripRow(player: UnitMetrics, duration: number) {
+		const gcdCasts = player.castLogs
+			.filter(c => c.gcd > 0 && !c.castCancelledLog)
+			.sort((a, b) => a.timestamp - b.timestamp);
+		if (gcdCasts.length === 0) return;
+
+		this.rotationLabels.appendChild(
+			<div className="rotation-label rotation-row" dataset={{ row: 'gcd' }}>
+				<a className="rotation-label-icon rotation-label-icon-empty" />
+				<span className="rotation-label-text">GCD</span>
+			</div>,
+		);
+
+		const rowElem = (
+			<div
+				className="rotation-timeline-row rotation-row rotation-timeline-gcd-strip"
+				dataset={{ row: 'gcd' }}
+				style={{ width: this.timeToPx(duration) }}
+			/>
+		) as HTMLElement;
+
+		gcdCasts.forEach(c => {
+			const visibleGcd = Math.min(c.gcd, duration - c.timestamp);
+			if (visibleGcd <= 0) return;
+
+			const segElem = (
+				<div
+					className="rotation-timeline-gcd-segment"
+					style={{
+						left: this.timeToPx(c.timestamp),
+						width: this.timeToPx(visibleGcd),
+					}}
+				/>
+			) as HTMLElement;
+			rowElem.appendChild(segElem);
+
+			const segTip = tippy(segElem, {
+				placement: 'bottom',
+				content: (
+					<div className="timeline-tooltip">
+						<span>
+							{c.actionId!.name} — {c.gcd.toFixed(2)}s GCD ({c.timestamp.toFixed(2)}s → {(c.timestamp + c.gcd).toFixed(2)}s)
+						</span>
+					</div>
+				),
+			});
+			this.addOnResetCallback(() => segTip.destroy());
+		});
+
+		this.rotationTimeline.appendChild(rowElem);
+	}
+
 	private addSeparatorRow(duration: number) {
 		const separatorElem = <div className="rotation-timeline-separator"></div>;
 		this.rotationLabels.appendChild(separatorElem.cloneNode());
@@ -909,6 +978,21 @@ export class Timeline extends ResultComponent {
 			);
 			rowElem.appendChild(castElem);
 
+			const extensionStart = castLog.timestamp + castLog.castTime;
+			const gcdOverhead = Math.min(castLog.timestamp + castLog.gcd, duration) - extensionStart;
+			if (gcdOverhead > 0 && !castLog.castCancelledLog) {
+				const gcdExtensionElem = (
+					<div
+						className="rotation-timeline-gcd-extension"
+						style={{
+							left: this.timeToPx(extensionStart),
+							width: this.timeToPx(gcdOverhead),
+						}}
+					/>
+				) as HTMLElement;
+				rowElem.appendChild(gcdExtensionElem);
+			}
+
 			if (castLog.cancelTime) {
 				castElem.classList.add('cast-cancelled');
 			} else if (castLog.travelTime != 0) {
@@ -950,14 +1034,22 @@ export class Timeline extends ResultComponent {
 			const travelTimeStr = castLog.travelTime == 0 ? '' : ` + ${castLog.travelTime.toFixed(2)}s travel time`;
 			const totalDamage = castLog.totalDamage();
 
+			let timingStr = '';
+			if (castLog.castCancelledLog?.timestamp) {
+				timingStr = ` (Cancelled after ${castLog.cancelTime.toFixed(2)}s)`;
+			} else {
+				const parts: string[] = [];
+				if (castLog.castTime > 0) parts.push(`${castLog.castTime.toFixed(2)}s cast`);
+				if (castLog.gcd > 0) parts.push(`${castLog.gcd.toFixed(2)}s GCD`);
+				if (parts.length > 0) timingStr = ` (${parts.join(', ')})`;
+			}
+
 			const tt = (
 				<div className="timeline-tooltip">
 					<span>
 						{castLog.actionId!.name} from {castLog.timestamp.toFixed(2)}s to{' '}
 						{(castLog.castCancelledLog?.timestamp || castLog.timestamp + castLog.castTime).toFixed(2)}s
-						{castLog.castCancelledLog?.timestamp
-							? ` (Cancelled after ${castLog.cancelTime.toFixed(2)}s)`
-							: ` (${castLog.castTime > 0 ? `${castLog.castTime.toFixed(2)}s, ` : ''}${castLog.effectiveTime.toFixed(2)}s GCD Time)`}
+						{timingStr}
 						{travelTimeStr.length > 0 && travelTimeStr}
 					</span>
 					{totalDamage > 0 && (

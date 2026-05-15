@@ -960,12 +960,14 @@ export class MajorCooldownUsedLog extends SimLog {
 export class CastBeganLog extends SimLog {
 	readonly manaCost: number;
 	readonly castTime: number;
+	readonly gcd: number;
 	readonly effectiveTime: number;
 
-	constructor(params: SimLogParams, manaCost: number, castTime: number, effectiveTime: number) {
+	constructor(params: SimLogParams, manaCost: number, castTime: number, gcd: number, effectiveTime: number) {
 		super(params);
 		this.manaCost = manaCost;
 		this.castTime = castTime;
+		this.gcd = gcd;
 		this.effectiveTime = effectiveTime;
 	}
 
@@ -979,21 +981,27 @@ export class CastBeganLog extends SimLog {
 	}
 
 	static parse(params: SimLogParams): Promise<CastBeganLog> | null {
-		const match = params.raw.match(/Casting (.*) \(Cost = (\d+\.?\d*), Cast Time = (\d+\.?\d*)(m?s), Effective Time = (\d+\.?\d*)(m?s)\)/);
+		const match = params.raw.match(
+			/Casting (.*) \(Cost = (\d+\.?\d*), Cast Time = (\d+\.?\d*)(m?s), GCD = (\d+\.?\d*)(m?s), Effective Time = (\d+\.?\d*)(m?s)\)/,
+		);
 		if (match) {
 			let castTime = parseFloat(match[3]);
 			if (match[4] == 'ms') {
 				castTime /= 1000;
 			}
-			let effectiveTime = parseFloat(match[5]);
+			let gcd = parseFloat(match[5]);
 			if (match[6] == 'ms') {
+				gcd /= 1000;
+			}
+			let effectiveTime = parseFloat(match[7]);
+			if (match[8] == 'ms') {
 				effectiveTime /= 1000;
 			}
 			return ActionId.fromLogString(match[1])
 				.fill(params.source?.index)
 				.then(castId => {
 					params.actionId = castId;
-					return new CastBeganLog(params, parseFloat(match[2]), castTime, effectiveTime);
+					return new CastBeganLog(params, parseFloat(match[2]), castTime, gcd, effectiveTime);
 				});
 		} else {
 			return null;
@@ -1108,6 +1116,7 @@ export class AutoDelayLog extends SimLog {
 
 export class CastLog extends SimLog {
 	readonly castTime: number;
+	readonly gcd: number;
 	readonly effectiveTime: number;
 	readonly travelTime: number;
 	readonly cancelTime: number;
@@ -1139,6 +1148,7 @@ export class CastLog extends SimLog {
 			threat: castCompletedLog?.threat || castCancelledLog?.threat || castBeganLog.threat,
 		});
 		this.castTime = castBeganLog.castTime;
+		this.gcd = castBeganLog.gcd;
 		this.effectiveTime = castBeganLog.effectiveTime;
 		this.cancelTime = castCancelledLog?.cancelTime || 0;
 		this.delay = autoDelayLog?.delay ?? 0;
@@ -1151,7 +1161,6 @@ export class CastLog extends SimLog {
 
 		if (this.castCompletedLog && this.castBeganLog) {
 			this.castTime = this.castCompletedLog.timestamp - this.castBeganLog.timestamp;
-			this.effectiveTime = this.castCompletedLog.timestamp - this.castBeganLog.timestamp;
 		}
 		if (this.castCancelledLog) {
 			this.cancelTime = this.castCancelledLog.cancelTime;
