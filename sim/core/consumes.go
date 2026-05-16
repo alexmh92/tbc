@@ -1,7 +1,6 @@
 package core
 
 import (
-	"slices"
 	"time"
 
 	"github.com/wowsims/tbc/sim/core/proto"
@@ -688,12 +687,11 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 		character.AddStat(stats.SpellDamage, 42)
 	case 29453: // Addy Sharpstone
 		character.AddStat(stats.MeleeCritRating, 14)
-		sharpTypes := []proto.WeaponType{proto.WeaponType_WeaponTypeAxe, proto.WeaponType_WeaponTypeDagger, proto.WeaponType_WeaponTypeSword}
 		if isMH {
 			character.AutoAttacks.MH().BaseDamageMax += 12
 			character.AutoAttacks.MH().BaseDamageMin += 12
 
-			if character.AutoAttacks.OH() != nil && slices.Contains(sharpTypes, character.GetItemBySlot(proto.ItemSlot_ItemSlotOffHand).WeaponType) {
+			if character.AutoAttacks.OH() != nil {
 				character.AutoAttacks.OH().BaseDamageMax += 12
 				character.AutoAttacks.OH().BaseDamageMin += 12
 			}
@@ -701,7 +699,7 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 			character.AutoAttacks.OH().BaseDamageMax += 12
 			character.AutoAttacks.OH().BaseDamageMin += 12
 
-			if character.AutoAttacks.MH() != nil && slices.Contains(sharpTypes, character.GetItemBySlot(proto.ItemSlot_ItemSlotMainHand).WeaponType) {
+			if character.AutoAttacks.MH() != nil {
 				character.AutoAttacks.MH().BaseDamageMax += 12
 				character.AutoAttacks.MH().BaseDamageMin += 12
 			}
@@ -715,12 +713,11 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 
 	case 34340: // Addy Weightstone
 		character.AddStat(stats.MeleeCritRating, 14)
-		sharpTypes := []proto.WeaponType{proto.WeaponType_WeaponTypeAxe, proto.WeaponType_WeaponTypeDagger, proto.WeaponType_WeaponTypeSword}
 		if isMH {
 			character.AutoAttacks.MH().BaseDamageMax += 12
 			character.AutoAttacks.MH().BaseDamageMin += 12
 
-			if character.AutoAttacks.OH() != nil && !slices.Contains(sharpTypes, character.GetItemBySlot(proto.ItemSlot_ItemSlotOffHand).WeaponType) {
+			if character.AutoAttacks.OH() != nil {
 				character.AutoAttacks.OH().BaseDamageMax += 12
 				character.AutoAttacks.OH().BaseDamageMin += 12
 			}
@@ -728,7 +725,7 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 			character.AutoAttacks.OH().BaseDamageMax += 12
 			character.AutoAttacks.OH().BaseDamageMin += 12
 
-			if character.AutoAttacks.MH() != nil && !slices.Contains(sharpTypes, character.GetItemBySlot(proto.ItemSlot_ItemSlotMainHand).WeaponType) {
+			if character.AutoAttacks.MH() != nil {
 				character.AutoAttacks.MH().BaseDamageMax += 12
 				character.AutoAttacks.MH().BaseDamageMin += 12
 			}
