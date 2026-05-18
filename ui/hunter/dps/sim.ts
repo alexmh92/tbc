@@ -53,6 +53,7 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecHunter, {
 		[
 			PseudoStat.PseudoStatMeleeHitPercent,
 			PseudoStat.PseudoStatMeleeCritPercent,
+			PseudoStat.PseudoStatMeleeHastePercent,
 			PseudoStat.PseudoStatRangedHitPercent,
 			PseudoStat.PseudoStatRangedCritPercent,
 			PseudoStat.PseudoStatRangedHastePercent,
