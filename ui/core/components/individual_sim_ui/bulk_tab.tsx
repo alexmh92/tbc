@@ -7,7 +7,7 @@ import { REPO_RELEASES_URL } from '../../constants/other';
 import { IndividualSimUI } from '../../individual_sim_ui';
 import i18n from '../../../i18n/config';
 import { BulkSettings, DistributionMetrics, ProgressMetrics, RaidSimResult } from '../../proto/api';
-import { GemColor, HandType, ItemRandomSuffix, ItemSlot, ItemSpec, RangedWeaponType } from '../../proto/common';
+import { GemColor, HandType, ItemRandomSuffix, ItemSlot, ItemSpec, RangedWeaponType, WeaponType } from '../../proto/common';
 import { ItemEffectRandPropPoints, SimDatabase, SimEnchant, SimGem, SimItem } from '../../proto/db';
 import { UIEnchant, UIGem, UIItem } from '../../proto/ui';
 import { ActionId } from '../../proto_utils/action_id';
@@ -37,12 +37,16 @@ import {
 import { BulkGearJsonImporter } from './importers';
 import { trackEvent } from '../../../tracking/utils';
 import { EnumPicker } from '../pickers/enum_picker';
-import { translateBulkSlotName } from '../../../i18n/localization';
+import { translateBulkSlotName, translateWeaponType } from '../../../i18n/localization';
+import { BooleanPicker } from '../pickers/boolean_picker';
 import { ProgressTrackerModal } from '../progress_tracker_modal';
 
-const WEB_DEFAULT_ITERATIONS = 1000;
+const WEB_DEFAULT_ITERATIONS = 5_000;
 const WEB_ITERATIONS_LIMIT = 100_000;
 const LOCAL_ITERATIONS_LIMIT = 5_000_000;
+
+const WEB_COMBINATIONS_LIMIT = 50_000;
+const LOCAL_COMBINATIONS_LIMIT = 100_000;
 
 export interface TopGearResult {
 	gear: Gear;
@@ -51,6 +55,7 @@ export interface TopGearResult {
 
 export class BulkTab extends SimTab {
 	readonly simUI: IndividualSimUI<any>;
+	readonly playerCanDualWield: boolean;
 
 	readonly itemsChangedEmitter = new TypedEvent<void>();
 	readonly settingsChangedEmitter = new TypedEvent<void>();
@@ -81,6 +86,11 @@ export class BulkTab extends SimTab {
 		[BulkSimItemSlot.ItemSlotFinger, null],
 		[BulkSimItemSlot.ItemSlotTrinket, null],
 	]);
+	frozenWeaponSlot: ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand | undefined = undefined;
+	weaponTypeFilters: Map<ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand, WeaponType[]> = new Map([
+		[ItemSlot.ItemSlotMainHand, []],
+		[ItemSlot.ItemSlotOffHand, []],
+	]);
 	fallbackGems: SimGem[];
 	gemIconElements: HTMLImageElement[];
 
@@ -92,6 +102,7 @@ export class BulkTab extends SimTab {
 		super(parentElem, simUI, { identifier: 'bulk-tab', title: i18n.t('bulk_tab.title') });
 
 		this.simUI = simUI;
+		this.playerCanDualWield = this.simUI.player.getPlayerSpec().canDualWield;
 
 		const setupTabBtnRef = ref<HTMLButtonElement>();
 		const setupTabRef = ref<HTMLDivElement>();
@@ -153,7 +164,7 @@ export class BulkTab extends SimTab {
 				</div>
 				<div className="bulk-tab-right tab-panel-right">
 					<div className="bulk-settings-outer-container">
-						<div className="bulk-settings-container progress-tracker-modal-content" ref={settingsContainerRef}>
+						<div className="bulk-settings-container" ref={settingsContainerRef}>
 							<div className="bulk-combinations-count h4" ref={combinationsElemRef} />
 							<button className="btn btn-primary bulk-settings-btn" ref={bulkSimBtnRef}>
 								{i18n.t('bulk_tab.actions.simulate_batch')}
@@ -210,7 +221,7 @@ export class BulkTab extends SimTab {
 				}
 
 				this.simUI.player.getEquippedItems().forEach((equippedItem, slot) => {
-					const bulkSlot = getBulkItemSlotFromSlot(slot);
+					const bulkSlot = getBulkItemSlotFromSlot(slot, this.playerCanDualWield);
 					const group = this.pickerGroups.get(bulkSlot)!;
 					const idx = this.isSecondaryItemSlot(slot) ? -2 : -1;
 					if (equippedItem) {
@@ -243,11 +254,21 @@ export class BulkTab extends SimTab {
 	private loadSettings() {
 		const storedSettings = window.localStorage.getItem(this.getSettingsKey());
 		if (storedSettings != null) {
-			const settings = BulkSettings.fromJsonString(storedSettings, {
-				ignoreUnknownFields: true,
-			});
+			let settings: BulkSettings;
+			try {
+				settings = BulkSettings.fromJsonString(storedSettings, {
+					ignoreUnknownFields: true,
+				});
+			} catch {
+				settings = BulkSettings.create();
+			}
 
 			this.addItems(settings.items, true);
+			this.setFrozenItem(BulkSimItemSlot.ItemSlotFinger, this.getEquippedItemForFrozenSlot(BulkSimItemSlot.ItemSlotFinger, settings.freezeRingSlot));
+			this.setFrozenItem(BulkSimItemSlot.ItemSlotTrinket, this.getEquippedItemForFrozenSlot(BulkSimItemSlot.ItemSlotTrinket, settings.freezeTrinketSlot));
+			this.setFrozenWeaponSlot(settings.freezeWeaponSlot);
+			this.setWeaponTypeFilter(ItemSlot.ItemSlotMainHand, settings.freezeMainhandWeaponSlots);
+			this.setWeaponTypeFilter(ItemSlot.ItemSlotOffHand, settings.freezeOffhandWeaponSlots);
 			this.fallbackGems = new Array<SimGem>(
 				SimGem.create({ id: settings.defaultRedGem }),
 				SimGem.create({ id: settings.defaultYellowGem }),
@@ -290,6 +311,11 @@ export class BulkTab extends SimTab {
 			defaultMetaGem: this.fallbackGems[3].id,
 			defaultPrismaticGem: this.fallbackGems[4].id,
 			iterationsPerCombo: this.getDefaultIterationsCount(),
+			freezeRingSlot: this.getFrozenItemSlot(BulkSimItemSlot.ItemSlotFinger),
+			freezeTrinketSlot: this.getFrozenItemSlot(BulkSimItemSlot.ItemSlotTrinket),
+			freezeWeaponSlot: this.frozenWeaponSlot,
+			freezeMainhandWeaponSlots: this.weaponTypeFilters.get(ItemSlot.ItemSlotMainHand)?.slice(),
+			freezeOffhandWeaponSlots: this.weaponTypeFilters.get(ItemSlot.ItemSlotOffHand)?.slice(),
 		});
 	}
 
@@ -357,7 +383,7 @@ export class BulkTab extends SimTab {
 					if (this.isSecondaryItemSlot(slot) || !canEquipItem(equippedItem.item, this.simUI.player.getPlayerSpec(), slot)) return;
 
 					const idx = this.items.push(item) - 1;
-					const bulkSlot = getBulkItemSlotFromSlot(slot);
+					const bulkSlot = getBulkItemSlotFromSlot(slot, this.playerCanDualWield);
 					const group = this.pickerGroups.get(bulkSlot)!;
 					group.add(idx, equippedItem, silent);
 				});
@@ -389,7 +415,7 @@ export class BulkTab extends SimTab {
 				// Avoid duplicating rings/trinkets/weapons
 				if (this.isSecondaryItemSlot(slot) || !canEquipItem(equippedItem.item, this.simUI.player.getPlayerSpec(), slot)) return;
 
-				const bulkSlot = getBulkItemSlotFromSlot(slot);
+				const bulkSlot = getBulkItemSlotFromSlot(slot, this.playerCanDualWield);
 				const group = this.pickerGroups.get(bulkSlot)!;
 				group.update(idx, equippedItem);
 			});
@@ -423,7 +449,7 @@ export class BulkTab extends SimTab {
 			// Try to find the matching item within its eligible groups
 			getEligibleItemSlots(equippedItem.item).forEach(slot => {
 				if (!canEquipItem(equippedItem.item, this.simUI.player.getPlayerSpec(), slot)) return;
-				const bulkSlot = getBulkItemSlotFromSlot(slot);
+				const bulkSlot = getBulkItemSlotFromSlot(slot, this.playerCanDualWield);
 				const group = this.pickerGroups.get(bulkSlot)!;
 
 				if (group.has(idx)) {
@@ -505,8 +531,34 @@ export class BulkTab extends SimTab {
 				allWeaponCombos.push([null, ohItem]);
 			}
 		}
+		// Finally loop through all one-hand weapons. Double count these since they can go in either slot.
+		const oneHandGroup = this.pickerGroups.get(BulkSimItemSlot.ItemSlotHandWeapon);
 
-		return allWeaponCombos;
+		if (oneHandGroup?.pickers.size) {
+			const allOneHandWeapons: EquippedItem[] = Array.from(oneHandGroup.pickers.values())
+				.map(picker => picker.item)
+				.filter(item => !all2HWeapons.includes(item));
+
+			for (let i = 0; i < allOneHandWeapons.length; i++) {
+				if (allOneHandWeapons.slice(0, i).some((item: EquippedItem) => item.equals(allOneHandWeapons[i], true, true))) {
+					continue;
+				}
+
+				for (let j = i + 1; j < allOneHandWeapons.length; j++) {
+					if (allOneHandWeapons.slice(i + 1, j).some((item: EquippedItem) => item.equals(allOneHandWeapons[j], true, true))) {
+						continue;
+					}
+
+					allWeaponCombos.push([allOneHandWeapons[i], allOneHandWeapons[j]]);
+
+					if (!allOneHandWeapons[i].equals(allOneHandWeapons[j], true, true)) {
+						allWeaponCombos.push([allOneHandWeapons[j], allOneHandWeapons[i]]);
+					}
+				}
+			}
+		}
+
+		return allWeaponCombos.filter(([mhItem, ohItem]) => this.weaponComboMatchesSettings(mhItem, ohItem));
 	}
 
 	protected getItemsForCombo(comboIdx: number): Map<ItemSlot, EquippedItem> {
@@ -570,12 +622,46 @@ export class BulkTab extends SimTab {
 		return itemsForCombo;
 	}
 
+	private getFrozenWeaponItem(): EquippedItem | undefined {
+		if (!this.frozenWeaponSlot) {
+			return undefined;
+		}
+
+		return this.simUI.player.getGear().getEquippedItem(this.frozenWeaponSlot) || undefined;
+	}
+
+	private matchesWeaponTypeFilter(equippedItem: EquippedItem | null, slot: ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand): boolean {
+		const filter = this.weaponTypeFilters.get(slot)!;
+		if (filter.length === 0) {
+			return true;
+		}
+
+		if (!equippedItem) {
+			return false;
+		}
+
+		return equippedItem.item.weaponType > WeaponType.WeaponTypeUnknown && filter.includes(equippedItem.item.weaponType);
+	}
+
+	private weaponComboMatchesSettings(mhItem: EquippedItem | null, ohItem: EquippedItem | null): boolean {
+		const frozenWeaponItem = this.getFrozenWeaponItem();
+
+		if (this.frozenWeaponSlot === ItemSlot.ItemSlotMainHand && frozenWeaponItem && !mhItem?.equals(frozenWeaponItem)) {
+			return false;
+		}
+		if (this.frozenWeaponSlot === ItemSlot.ItemSlotOffHand && frozenWeaponItem && !ohItem?.equals(frozenWeaponItem)) {
+			return false;
+		}
+
+		return this.matchesWeaponTypeFilter(mhItem, ItemSlot.ItemSlotMainHand) && this.matchesWeaponTypeFilter(ohItem, ItemSlot.ItemSlotOffHand);
+	}
+
 	protected calculateBulkCombinations() {
 		try {
 			let numCombinations: number = this.getAllWeaponCombos().length;
 
 			for (const [bulkItemSlot, pickerGroup] of this.pickerGroups.entries()) {
-				if ([BulkSimItemSlot.ItemSlotMainHand, BulkSimItemSlot.ItemSlotOffHand].includes(bulkItemSlot)) {
+				if ([BulkSimItemSlot.ItemSlotMainHand, BulkSimItemSlot.ItemSlotOffHand, BulkSimItemSlot.ItemSlotHandWeapon].includes(bulkItemSlot)) {
 					continue;
 				}
 
@@ -656,8 +742,8 @@ export class BulkTab extends SimTab {
 		this.setupTabElem.appendChild(itemList);
 
 		getEnumValues<BulkSimItemSlot>(BulkSimItemSlot).forEach(bulkSlot => {
-			if (bulkSlot === BulkSimItemSlot.ItemSlotHandWeapon) return;
-
+			if (this.playerCanDualWield && [BulkSimItemSlot.ItemSlotMainHand, BulkSimItemSlot.ItemSlotOffHand].includes(bulkSlot)) return;
+			if (!this.playerCanDualWield && bulkSlot === BulkSimItemSlot.ItemSlotHandWeapon) return;
 			this.pickerGroups.set(bulkSlot, new BulkItemPickerGroup(itemList, this.simUI, this, bulkSlot));
 		});
 	}
@@ -679,9 +765,135 @@ export class BulkTab extends SimTab {
 	}
 
 	// Return whether or not the slot is considered secondary and the item should be grouped
-	// This includes items in the Finger2 or Trinket2 slots
+	// This includes items in the Finger2 or Trinket2 slots, or OffHand for dual-wield specs
 	private isSecondaryItemSlot(slot: ItemSlot) {
-		return isSecondaryItemSlot(slot);
+		return isSecondaryItemSlot(slot) || (this.playerCanDualWield && slot === ItemSlot.ItemSlotOffHand);
+	}
+
+	private createFreezeWeaponTypePickers(container: HTMLElement, slot: ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand) {
+		const weaponTypes = Array.from(
+			new Set(
+				this.simUI.player
+					.getPlayerClass()
+					.weaponTypes.filter(
+						eligibleWeaponType =>
+							slot === ItemSlot.ItemSlotMainHand ||
+							(this.playerCanDualWield && ![WeaponType.WeaponTypePolearm, WeaponType.WeaponTypeStaff].includes(eligibleWeaponType.weaponType)),
+					)
+					.map(eligibleWeaponType => eligibleWeaponType.weaponType),
+			),
+		);
+
+		if (!weaponTypes.length) return;
+
+		const freezeWeaponTypeContainerRef = ref<HTMLDivElement>();
+		const freezeWeaponTypeListRef = ref<HTMLDivElement>();
+
+		container.appendChild(
+			<div className={clsx('bulk-gear-freeze-weapontypes', this.frozenWeaponSlot === slot && 'hide')} ref={freezeWeaponTypeContainerRef}>
+				<h6 className="mb-2">
+					{slot === ItemSlot.ItemSlotMainHand
+						? i18n.t('bulk_tab.settings.freeze_weapon_types.mainhand_label')
+						: i18n.t('bulk_tab.settings.freeze_weapon_types.offhand_label')}
+				</h6>
+				<div className="fs-content mb-2">{i18n.t('bulk_tab.settings.freeze_weapon_types.tooltip')}</div>
+				<div className="bulk-gear-freeze-weapontypes__list gap-1" ref={freezeWeaponTypeListRef}></div>
+			</div>,
+		);
+
+		const updateVisibility = () => freezeWeaponTypeContainerRef.value?.parentElement?.classList.toggle('hide', this.frozenWeaponSlot === slot);
+		const visibilityChange = this.settingsChangedEmitter.on(updateVisibility);
+		this.addOnDisposeCallback(() => visibilityChange.dispose());
+
+		weaponTypes.forEach(weaponType => {
+			new BooleanPicker<BulkTab>(freezeWeaponTypeListRef.value!, this, {
+				id: `bulk-${slot}-weapon-type-${weaponType}`,
+				label: translateWeaponType(weaponType),
+				inline: true,
+				changedEvent: _modObj => this.settingsChangedEmitter,
+				getValue: _modObj => this.weaponTypeFilters.get(slot)!.includes(weaponType),
+				setValue: (eventID, _modObj, newValue: boolean) => {
+					const filter = this.weaponTypeFilters.get(slot)!;
+					this.setWeaponTypeFilter(slot, newValue ? [...filter, weaponType] : filter.filter(type => type !== weaponType), eventID);
+				},
+			});
+		});
+	}
+
+	private setFrozenItem(
+		bulkSlot: BulkSimItemSlot.ItemSlotFinger | BulkSimItemSlot.ItemSlotTrinket,
+		item: EquippedItem | null,
+		eventID = TypedEvent.nextEventID(),
+	) {
+		if (item === this.frozenItems.get(bulkSlot)) {
+			return;
+		}
+
+		this.frozenItems.set(bulkSlot, item);
+		this.settingsChangedEmitter.emit(eventID);
+	}
+
+	private getEquippedItemForFrozenSlot(bulkSlot: BulkSimItemSlot.ItemSlotFinger | BulkSimItemSlot.ItemSlotTrinket, itemSlot: number): EquippedItem | null {
+		const slots = bulkSimItemSlotToItemSlotPairs.get(bulkSlot);
+		if (!slots?.includes(itemSlot)) {
+			return null;
+		}
+
+		return this.simUI.player.getGear().getEquippedItem(itemSlot) ?? null;
+	}
+
+	private getFrozenItemSlot(bulkSlot: BulkSimItemSlot.ItemSlotFinger | BulkSimItemSlot.ItemSlotTrinket): ItemSlot | undefined {
+		const frozenItem = this.frozenItems.get(bulkSlot);
+		const slots = bulkSimItemSlotToItemSlotPairs.get(bulkSlot);
+		if (!frozenItem || !slots) {
+			return undefined;
+		}
+
+		const currentGear = this.simUI.player.getGear();
+		return (
+			slots.find(slot => currentGear.getEquippedItem(slot) === frozenItem) ??
+			slots.find(slot => currentGear.getEquippedItem(slot)?.equals(frozenItem)) ??
+			undefined
+		);
+	}
+
+	private setWeaponTypeFilter(
+		slot: ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand,
+		newFilter: WeaponType[],
+		eventID = TypedEvent.nextEventID(),
+		shouldEmit = true,
+	): boolean {
+		const currentFilter = this.weaponTypeFilters.get(slot)!;
+		const hasChanged = currentFilter.length !== newFilter.length || currentFilter.some((weaponType, idx) => weaponType !== newFilter[idx]);
+
+		if (!hasChanged) {
+			return false;
+		}
+
+		this.weaponTypeFilters.set(slot, newFilter);
+		if (shouldEmit) {
+			this.settingsChangedEmitter.emit(eventID);
+		}
+		return true;
+	}
+
+	private clearWeaponTypeFilter(slot: ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand): boolean {
+		return this.setWeaponTypeFilter(slot, [], undefined, false);
+	}
+
+	private setFrozenWeaponSlot(itemSlot: number | null, eventID = TypedEvent.nextEventID()): boolean {
+		const newSlot = [ItemSlot.ItemSlotMainHand, ItemSlot.ItemSlotOffHand].includes(itemSlot ?? -1)
+			? (itemSlot as ItemSlot.ItemSlotMainHand | ItemSlot.ItemSlotOffHand)
+			: undefined;
+		const filtersChanged = newSlot !== undefined && this.clearWeaponTypeFilter(newSlot);
+
+		if (newSlot === this.frozenWeaponSlot && !filtersChanged) {
+			return false;
+		}
+
+		this.frozenWeaponSlot = newSlot;
+		this.settingsChangedEmitter.emit(eventID);
+		return true;
 	}
 
 	protected buildBatchSettings() {
@@ -690,6 +902,9 @@ export class BulkTab extends SimTab {
 		const socketsContainerRef = ref<HTMLDivElement>();
 		const frozenRingDiv = ref<HTMLDivElement>();
 		const frozenTrinketDiv = ref<HTMLDivElement>();
+		const frozenWeaponDiv = ref<HTMLDivElement>();
+		const mainHandWeaponTypesDiv = ref<HTMLDivElement>();
+		const offHandWeaponTypesDiv = ref<HTMLDivElement>();
 
 		this.settingsContainer.appendChild(
 			<>
@@ -699,6 +914,13 @@ export class BulkTab extends SimTab {
 				</div>
 				<div ref={frozenRingDiv}></div>
 				<div ref={frozenTrinketDiv}></div>
+				{this.playerCanDualWield && (
+					<>
+						<div ref={frozenWeaponDiv}></div>
+						<div ref={mainHandWeaponTypesDiv}></div>
+						<div ref={offHandWeaponTypesDiv}></div>
+					</>
+				)}
 			</>,
 		);
 
@@ -709,8 +931,8 @@ export class BulkTab extends SimTab {
 				labelTooltip: i18n.t('bulk_tab.settings.freeze_ring.tooltip'),
 				values: [
 					{ name: i18n.t('common.none'), value: -1 },
-					{ name: i18n.t('gear_tab.slots.finger_1'), value: ItemSlot.ItemSlotFinger1 },
-					{ name: i18n.t('gear_tab.slots.finger_2'), value: ItemSlot.ItemSlotFinger2 },
+					{ name: i18n.t('slots.finger_1', { ns: 'character' }), value: ItemSlot.ItemSlotFinger1 },
+					{ name: i18n.t('slots.finger_2', { ns: 'character' }), value: ItemSlot.ItemSlotFinger2 },
 				],
 				changedEvent: _modObj => TypedEvent.onAny([this.settingsChangedEmitter, this.itemsChangedEmitter]),
 				getValue: _modObj => {
@@ -727,8 +949,7 @@ export class BulkTab extends SimTab {
 					} else if (currentGear.getEquippedItem(ItemSlot.ItemSlotFinger2)?.equals(frozenRing)) {
 						return ItemSlot.ItemSlotFinger2;
 					} else {
-						this.frozenItems.set(BulkSimItemSlot.ItemSlotFinger, null);
-						this.settingsChangedEmitter.emit(TypedEvent.nextEventID());
+						this.setFrozenItem(BulkSimItemSlot.ItemSlotFinger, null);
 						return -1;
 					}
 				},
@@ -739,10 +960,7 @@ export class BulkTab extends SimTab {
 						newItem = this.simUI.player.getGear().getEquippedItem(newValue);
 					}
 
-					if (newItem !== this.frozenItems.get(BulkSimItemSlot.ItemSlotFinger)) {
-						this.frozenItems.set(BulkSimItemSlot.ItemSlotFinger, newItem);
-						this.settingsChangedEmitter.emit(eventID);
-					}
+					this.setFrozenItem(BulkSimItemSlot.ItemSlotFinger, newItem, eventID);
 				},
 			});
 
@@ -753,8 +971,8 @@ export class BulkTab extends SimTab {
 				labelTooltip: i18n.t('bulk_tab.settings.freeze_trinket.tooltip'),
 				values: [
 					{ name: i18n.t('common.none'), value: -1 },
-					{ name: i18n.t('gear_tab.slots.trinket_1'), value: ItemSlot.ItemSlotTrinket1 },
-					{ name: i18n.t('gear_tab.slots.trinket_2'), value: ItemSlot.ItemSlotTrinket2 },
+					{ name: i18n.t('slots.trinket_1', { ns: 'character' }), value: ItemSlot.ItemSlotTrinket1 },
+					{ name: i18n.t('slots.trinket_2', { ns: 'character' }), value: ItemSlot.ItemSlotTrinket2 },
 				],
 				changedEvent: _modObj => TypedEvent.onAny([this.settingsChangedEmitter, this.itemsChangedEmitter]),
 				getValue: _modObj => {
@@ -771,8 +989,7 @@ export class BulkTab extends SimTab {
 					} else if (currentGear.getEquippedItem(ItemSlot.ItemSlotTrinket2)?.equals(frozenTrinket)) {
 						return ItemSlot.ItemSlotTrinket2;
 					} else {
-						this.frozenItems.set(BulkSimItemSlot.ItemSlotTrinket, null);
-						this.settingsChangedEmitter.emit(TypedEvent.nextEventID());
+						this.setFrozenItem(BulkSimItemSlot.ItemSlotTrinket, null);
 						return -1;
 					}
 				},
@@ -783,12 +1000,37 @@ export class BulkTab extends SimTab {
 						newItem = this.simUI.player.getGear().getEquippedItem(newValue);
 					}
 
-					if (newItem !== this.frozenItems.get(BulkSimItemSlot.ItemSlotTrinket)) {
-						this.frozenItems.set(BulkSimItemSlot.ItemSlotTrinket, newItem);
-						this.settingsChangedEmitter.emit(eventID);
-					}
+					this.setFrozenItem(BulkSimItemSlot.ItemSlotTrinket, newItem, eventID);
 				},
 			});
+
+		if (this.playerCanDualWield) {
+			if (frozenWeaponDiv.value)
+				new EnumPicker<BulkTab>(frozenWeaponDiv.value, this, {
+					id: 'freeze-weapon',
+					label: i18n.t('bulk_tab.settings.freeze_weapon.label'),
+					labelTooltip: i18n.t('bulk_tab.settings.freeze_weapon.tooltip'),
+					values: [
+						{ name: i18n.t('common.none'), value: -1 },
+						{ name: i18n.t('slots.main_hand', { ns: 'character' }), value: ItemSlot.ItemSlotMainHand },
+						{ name: i18n.t('slots.off_hand', { ns: 'character' }), value: ItemSlot.ItemSlotOffHand },
+					],
+					changedEvent: _modObj => TypedEvent.onAny([this.settingsChangedEmitter, this.itemsChangedEmitter]),
+					getValue: _modObj => {
+						if (!this.frozenWeaponSlot) {
+							return -1;
+						}
+
+						return this.frozenWeaponSlot;
+					},
+					setValue: (eventID, _modObj, newValue) => {
+						this.setFrozenWeaponSlot(newValue === -1 ? null : newValue, eventID);
+					},
+				});
+
+			if (mainHandWeaponTypesDiv.value) this.createFreezeWeaponTypePickers(mainHandWeaponTypesDiv.value, ItemSlot.ItemSlotMainHand);
+			if (offHandWeaponTypesDiv.value) this.createFreezeWeaponTypePickers(offHandWeaponTypesDiv.value, ItemSlot.ItemSlotOffHand);
+		}
 
 		Array<GemColor>(GemColor.GemColorRed, GemColor.GemColorYellow, GemColor.GemColorBlue, GemColor.GemColorMeta, GemColor.GemColorPrismatic).forEach(
 			(socketColor, socketIndex) => {
@@ -843,7 +1085,7 @@ export class BulkTab extends SimTab {
 
 	private getCombinationsCount(): Element {
 		this.calculateBulkCombinations();
-		this.bulkSimButton.disabled = this.combinations > 50000;
+		this.bulkSimButton.disabled = !this.combinations || this.combinations > this.getCombinationsLimit();
 
 		const warningRef = ref<HTMLButtonElement>();
 		const rtn = (
@@ -891,6 +1133,10 @@ export class BulkTab extends SimTab {
 
 	private getIterationsLimit(): number {
 		return isExternal() ? WEB_ITERATIONS_LIMIT : LOCAL_ITERATIONS_LIMIT;
+	}
+
+	private getCombinationsLimit(): number {
+		return isExternal() ? WEB_COMBINATIONS_LIMIT : LOCAL_COMBINATIONS_LIMIT;
 	}
 
 	private setReforgeProgress(currentRound: number, rounds: number) {
