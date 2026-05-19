@@ -249,13 +249,6 @@ dps_results: {
  }
 }
 dps_results: {
- key: "TestShadowPriest-AllItems-Biznicks247x128Accurascope-2523"
- value: {
-  dps: 1763.9867
-  tps: 1293.89453
- }
-}
-dps_results: {
  key: "TestShadowPriest-AllItems-BlackenedNaaruSliver-34427"
  value: {
   dps: 1707.9182
@@ -993,6 +986,13 @@ dps_results: {
 }
 dps_results: {
  key: "TestShadowPriest-AllItems-StabilitzedEterniumScope-2724"
+ value: {
+  dps: 1763.9867
+  tps: 1293.89453
+ }
+}
+dps_results: {
+ key: "TestShadowPriest-AllItems-StabilizedEterniumScope-2523"
  value: {
   dps: 1763.9867
   tps: 1293.89453
