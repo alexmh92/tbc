@@ -129,6 +129,8 @@ message ProtectionPaladin {
 		bool useAvengersShield = 4;
 		PaladinJudgement maintainJudgement = 5;
 		PaladinAura aura = 6;
+		bool precastAvengersShield = 7;
+		bool useHammerOfWrath = 8;
 	}
 
 	message Options {

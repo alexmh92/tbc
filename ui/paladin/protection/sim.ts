@@ -26,7 +26,9 @@ const CONSECRATION_RANK_SPELL_IDS: Record<number, number> = {
 // Fixed indices into the default APL (apls/default.apl.json). simpleRotation
 // relies on these — if you reorder the APL, update these too.
 const PREPULL_AURA_INDEX = 1; // Devotion Aura at -18.5s
-const PREPULL_SEAL_INDEX = 2; // Seal of Righteousness at -3s
+const PREPULL_SEAL_INDEX = 2; // Seal of Righteousness at -3s (shifted to -4s when precastAvengersShield is on)
+const PREPULL_HOLY_SHIELD_INDEX = 3; // Holy Shield at -1.5s (shifted to -2.5s when precastAvengersShield is on)
+const PREPULL_AVENGERS_SHIELD_INDEX = 4; // Avenger's Shield at -0.99s (hidden by default)
 const PRIORITY_JUDGE_ON_SEAL_INDEX = 0; // When maintenance seal is up, judge it
 const PRIORITY_SWAP_SEAL_INDEX = 4; // When maintenance seal is down, JoX is down, and Judgement is ready, swap to maintenance seal
 const PRIORITY_RIGHTEOUSNESS_JUDGE_INDEX = 7; // Judge -> Re-seal Righteousness
@@ -204,14 +206,25 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 		const actions = AplUtils.simpleCooldownActions(cooldowns);
 		const rotation = APLRotation.clone(Presets.APL_PRESET.rotation.rotation!);
 
-		const {
+		let {
 			prioritizeHolyShield = true,
 			consecrationRank = 6,
 			useExorcism = true,
 			useAvengersShield = false,
+			useHammerOfWrath = false,
+			precastAvengersShield = true,
 			maintainJudgement = PaladinJudgement.JudgementNone,
 			aura: rawAura = PaladinAura.DevotionAura,
 		} = simple;
+
+		if (!player.getTalents().avengersShield) {
+			useAvengersShield = false;
+			precastAvengersShield = false;
+		}
+
+		if (!player.getTalents().holyShield) {
+			prioritizeHolyShield = false;
+		}
 
 		// Sanctity Aura requires the talent. If the user picked it without the
 		// talent (e.g. dropped the point after selecting), fall back to None.
@@ -223,8 +236,18 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionPaladin, {
 			APLValueVariable.fromJson({ name: 'Prioritize Holy Shield', value: { const: { val: String(prioritizeHolyShield) } } }),
 			APLValueVariable.fromJson({ name: 'Use Exorcism', value: { const: { val: String(useExorcism) } } }),
 			APLValueVariable.fromJson({ name: "Use Avenger's Shield", value: { const: { val: String(useAvengersShield) } } }),
+			APLValueVariable.fromJson({ name: 'Use Hammer of Wrath', value: { const: { val: String(useHammerOfWrath) } } }),
 			APLValueVariable.fromJson({ name: 'Maintain Judgement', value: { const: { val: String(!!judgementConfig) } } }),
 		];
+
+		// Avenger's Shield prepull is disabled in the default APL; flip it on
+		// when the user enabled precast, and slide the seal and Holy Shield
+		// casts earlier so AS can land at the pull without clipping them.
+		if (precastAvengersShield) {
+			rotation.prepullActions[PREPULL_AVENGERS_SHIELD_INDEX].hide = false;
+			(rotation.prepullActions[PREPULL_SEAL_INDEX].doAtValue!.value as any).const.val = '-4s';
+			(rotation.prepullActions[PREPULL_HOLY_SHIELD_INDEX].doAtValue!.value as any).const.val = '-2.5s';
+		}
 
 		// For Light/Wisdom we activate the two maintenance actions that are
 		// dormant in the default APL:

@@ -4,6 +4,7 @@ import * as InputHelpers from '../../core/components/input_helpers';
 import { Spec } from '../../core/proto/common';
 import { PaladinJudgement } from '../../core/proto/paladin';
 import { ActionId } from '../../core/proto_utils/action_id';
+import { TypedEvent } from '../../core/typed_event';
 import * as SharedPaladinInputs from '../inputs';
 
 export const PaladinRotationConfig = {
@@ -12,8 +13,9 @@ export const PaladinRotationConfig = {
 			fieldName: 'prioritizeHolyShield',
 			label: 'Prioritize Holy Shield',
 			labelTooltip: 'If <b>true</b>, Holy Shield is cast at highest priority. If <b>false</b>, Holy Shield is cast after Consecration and Judgement.',
-			changeEmitter: player => player.rotationChangeEmitter,
+			changeEmitter: player => TypedEvent.onAny([player.rotationChangeEmitter, player.talentsChangeEmitter]),
 			getValue: player => player.getSimpleRotation().prioritizeHolyShield,
+			showWhen: player => player.getTalents().holyShield,
 		}),
 		SharedPaladinInputs.ConsecrationRankInput<Spec.SpecProtectionPaladin>(
 			'Which rank of Consecration to use in the rotation. Select <b>Do not use</b> to disable.',
@@ -26,11 +28,28 @@ export const PaladinRotationConfig = {
 			getValue: player => player.getSimpleRotation().useExorcism,
 		}),
 		InputHelpers.makeRotationBooleanInput<Spec.SpecProtectionPaladin>({
+			fieldName: 'useHammerOfWrath',
+			label: 'Use Hammer of Wrath',
+			labelTooltip: 'If <b>true</b>, will use Hammer of Wrath in the rotation when the target is in execute range.',
+			changeEmitter: player => player.rotationChangeEmitter,
+			getValue: player => player.getSimpleRotation().useHammerOfWrath,
+		}),
+		InputHelpers.makeRotationBooleanInput<Spec.SpecProtectionPaladin>({
 			fieldName: 'useAvengersShield',
 			label: "Use Avenger's Shield",
 			labelTooltip: "If <b>true</b>, will use Avenger's Shield in the rotation.",
-			changeEmitter: player => player.rotationChangeEmitter,
+			changeEmitter: player => TypedEvent.onAny([player.rotationChangeEmitter, player.talentsChangeEmitter]),
 			getValue: player => player.getSimpleRotation().useAvengersShield,
+			showWhen: player => player.getTalents().avengersShield,
+		}),
+		InputHelpers.makeRotationBooleanInput<Spec.SpecProtectionPaladin>({
+			fieldName: 'precastAvengersShield',
+			label: "Precast Avenger's Shield",
+			labelTooltip:
+				"If <b>true</b>, opens combat with a prepull Avenger's Shield cast that lands at pull. Adjusts the prepull Holy Shield and seal cast timings to fit.",
+			changeEmitter: player => TypedEvent.onAny([player.rotationChangeEmitter, player.talentsChangeEmitter]),
+			getValue: player => player.getSimpleRotation().precastAvengersShield,
+			showWhen: player => player.getTalents().avengersShield,
 		}),
 		InputHelpers.makeRotationEnumIconInput<Spec.SpecProtectionPaladin, PaladinJudgement>({
 			fieldName: 'maintainJudgement',

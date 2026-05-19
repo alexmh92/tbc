@@ -46,6 +46,8 @@ export const DefaultSimpleRotation = ProtectionPaladinRotation.create({
 	consecrationRank: 6,
 	useExorcism: true,
 	useAvengersShield: false,
+	useHammerOfWrath: false,
+	precastAvengersShield: true,
 	maintainJudgement: PaladinJudgement.JudgementNone,
 	aura: PaladinAura.DevotionAura,
 });

@@ -14,7 +14,31 @@ func init() {
 	common.RegisterAllEffects()
 }
 
+func setValueVariable(apl *proto.APLRotation, name string, val string) {
+	for i, v := range apl.ValueVariables {
+		if v.Name == name {
+			apl.ValueVariables[i].Value = &proto.APLValue{
+				Value: &proto.APLValue_Const{
+					Const: &proto.APLValueConst{
+						Val: val,
+					},
+				},
+			}
+			return
+		}
+	}
+
+	panic("value variable " + name + " not found, APL probably changed, fix tests!")
+}
+
 func TestProtection(t *testing.T) {
+	// Set all boolean options to true to test everything
+	apl := core.GetAplRotation("../../../ui/paladin/protection/apls", "default")
+	setValueVariable(apl.Rotation, "Prioritize Holy Shield", "true")
+	setValueVariable(apl.Rotation, "Use Exorcism", "true")
+	setValueVariable(apl.Rotation, "Use Avenger's Shield", "true")
+	setValueVariable(apl.Rotation, "Use Hammer of Wrath", "true")
+
 	core.RunTestSuite(t, t.Name(), core.FullCharacterTestSuiteGenerator([]core.CharacterSuiteConfig{
 		{
 			Class:            proto.Class_ClassPaladin,
@@ -28,7 +52,7 @@ func TestProtection(t *testing.T) {
 			Profession1:      proto.Profession_Engineering,
 			Profession2:      proto.Profession_Enchanting,
 
-			Rotation: core.GetAplRotation("../../../ui/paladin/protection/apls", "default"),
+			Rotation: apl,
 
 			IsTank:          true,
 			InFrontOfTarget: true,
