@@ -205,7 +205,6 @@ func (paladin *Paladin) ApplyTalents() {
 		paladin.applyArdentDefender()
 	}
 
-
 	// Combat Expertise (Tier 9) - Increases your expertise by 1/2/3/4/5, total Stamina by 2/4/6/8/10% and spell critical strike chance by 1/2/3/4/5%
 	if paladin.Talents.CombatExpertise > 0 {
 		paladin.applyCombatExpertise()
@@ -457,6 +456,11 @@ func (paladin *Paladin) applyPrecision() {
 
 	paladin.AddStat(stats.SpellHitPercent, float64(paladin.Talents.Precision))
 	paladin.AddStat(stats.PhysicalHitPercent, float64(paladin.Talents.Precision))
+	paladin.AddStaticMod(core.SpellModConfig{
+		Kind:       core.SpellMod_BonusHit_Percent,
+		FloatValue: -float64(paladin.Talents.Precision),
+		ClassMask:  SpellMaskAvengersShield | SpellMaskHammerOfWrath,
+	})
 }
 
 // Toughness - Increases your armor value from items by 2/4/6/8/10%
