@@ -75,7 +75,7 @@ func (paladin *Paladin) registerSelfCastAura(label string, actionID core.ActionI
 // All party members within 30 yards lose 35% less casting or channeling time
 // when damaged. Players may only have one Aura on them per Paladin at any one time.
 func (paladin *Paladin) registerConcentrationAura() {
-	aura := paladin.registerSelfCastAura("Concentration Aura", core.ActionID{SpellID: 19746})
+	aura := core.ConcentrationAura(&paladin.Character, true, paladin.Talents.ImprovedConcentrationAura)
 	paladin.registerAuraSpell(aura, SpellMaskConcentrationAura)
 }
 
