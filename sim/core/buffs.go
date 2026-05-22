@@ -263,6 +263,10 @@ func applyBuffEffects(agent Agent, raidBuffs *proto.RaidBuffs, partyBuffs *proto
 		MakePermanent(RetributionAuraBuff(char, false, GetTristateValueInt32(partyBuffs.RetributionAura, 0, 2)))
 	}
 
+	if partyBuffs.ConcentrationAura != proto.TristateEffect_TristateEffectMissing {
+		MakePermanent(ConcentrationAura(char, false, GetTristateValueInt32(partyBuffs.ConcentrationAura, 0, 3)))
+	}
+
 	if partyBuffs.SanctityAura != proto.TristateEffect_TristateEffectMissing {
 		MakePermanent(SanctityAuraBuff(char, false, GetTristateValueInt32(partyBuffs.SanctityAura, 0, 2)))
 	}
@@ -744,6 +748,7 @@ func CommandingShoutAura(char *Character, isPlayer bool, boomingVoicePoints int3
 
 var (
 	PaladinAuraCategory          = "PaladinAura"
+	ConcentrationAuraCategory    = "ConcentrationAura"
 	DevotionAuraCategory         = "DevotionAura"
 	RetributionAuraCategory      = "RetributionAura"
 	SanctityAuraCategory         = "SanctityAura"
@@ -870,6 +875,34 @@ func RetributionAuraBuff(char *Character, isPlayer bool, impRetributionAuraRank 
 	// Self and external share RetributionAuraCategory (SingleAura) so only one
 	// variant's proc trigger fires at a time; self wins via higher priority.
 	aura.NewExclusiveEffect(RetributionAuraCategory, true, ExclusiveEffect{
+		Priority: paladinAuraPriority(isPlayer),
+	})
+
+	if isPlayer {
+		aura.NewExclusiveEffect(PaladinAuraCategory, true, ExclusiveEffect{})
+	}
+
+	return aura
+}
+
+func ConcentrationAura(char *Character, isPlayer bool, impConcentrationAuraRank int32) *Aura {
+	actionID := ActionID{SpellID: 19746}.WithTag(TernaryInt32(isPlayer, 0, -1))
+
+	pushbackReduction := -0.3
+	if impConcentrationAuraRank > 0 {
+		pushbackReduction -= 0.05 * float64(impConcentrationAuraRank)
+	}
+
+	aura := char.GetOrRegisterAura(Aura{
+		Label:      fmt.Sprintf("Concentration Aura (%s)", Ternary(isPlayer, "Player", "External")),
+		ActionID:   actionID,
+		Duration:   NeverExpires,
+		BuildPhase: Ternary(isPlayer, CharacterBuildPhaseNone, CharacterBuildPhaseBuffs),
+	}).AttachAdditivePseudoStatBuff(
+		&char.PseudoStats.PushbackChance, pushbackReduction,
+	)
+
+	aura.NewExclusiveEffect(ConcentrationAuraCategory, true, ExclusiveEffect{
 		Priority: paladinAuraPriority(isPlayer),
 	})
 

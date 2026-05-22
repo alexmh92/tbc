@@ -160,6 +160,12 @@ export const RetributionAura = makeTristatePartyBuffInput({
 	fieldName: 'retributionAura',
 	label: 'Retribution Aura',
 });
+export const ConcentrationAura = makeTristatePartyBuffInput({
+	actionId: () => ActionId.fromSpellId(19746),
+	impId: ActionId.fromSpellId(20256),
+	fieldName: 'concentrationAura',
+	label: 'Concentration Aura',
+});
 export const SanctityAura = makeTristatePartyBuffInput({
 	actionId: () => ActionId.fromSpellId(20218),
 	impId: ActionId.fromSpellId(31870),
@@ -327,6 +333,11 @@ export const PARTY_BUFFS_CONFIG = [
 		config: RetributionAura,
 		picker: IconPicker,
 		stats: [Stat.StatResilienceRating, Stat.StatArmor, Stat.StatDefenseRating],
+	},
+	{
+		config: ConcentrationAura,
+		picker: IconPicker,
+		stats: [Stat.StatDefenseRating],
 	},
 	{
 		config: SanctityAura,

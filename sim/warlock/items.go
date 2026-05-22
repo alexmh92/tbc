@@ -71,8 +71,8 @@ var ItemSetVoidheartRaiment = core.NewItemSet(core.ItemSet{
 			shadowBonus := warlock.NewTemporaryStatsAura("Flameshadow", core.ActionID{SpellID: 37379}, stats.Stats{stats.ShadowDamage: 135}, time.Second*15)
 
 			// Your fire damage spells have a chance to grant you 135 bonus fire damage for 15 sec.
-			// Hellfire - 39437
-			fireBonus := warlock.NewTemporaryStatsAura("Hellfire", core.ActionID{SpellID: 39437}, stats.Stats{stats.FireDamage: 135}, time.Second*15)
+			// Shadowflame Hellfire and RoF - 39437
+			fireBonus := warlock.NewTemporaryStatsAura("Shadowflame Hellfire and RoF", core.ActionID{SpellID: 39437}, stats.Stats{stats.FireDamage: 135}, time.Second*15)
 
 			setBonusAura.AttachProcTrigger(core.ProcTrigger{
 				Name:               "Voidheart Raiment 2pc",
@@ -82,8 +82,7 @@ var ItemSetVoidheartRaiment = core.NewItemSet(core.ItemSet{
 				Handler: func(sim *core.Simulation, spell *core.Spell, _ *core.SpellResult) {
 					if spell.SpellSchool.Matches(core.SpellSchoolShadow) {
 						shadowBonus.Activate(sim)
-					}
-					if spell.SpellSchool.Matches(core.SpellSchoolFire) {
+					} else if spell.SpellSchool.Matches(core.SpellSchoolFire) {
 						fireBonus.Activate(sim)
 					}
 				},

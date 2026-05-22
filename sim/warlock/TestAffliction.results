@@ -1162,8 +1162,8 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-AllItems-VoidheartRaiment"
  value: {
-  dps: 1770.65965
-  tps: 1082.64153
+  dps: 1804.16234
+  tps: 1110.22406
  }
 }
 dps_results: {

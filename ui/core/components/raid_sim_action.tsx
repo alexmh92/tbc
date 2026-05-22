@@ -466,7 +466,8 @@ export class RaidSimResultsManager {
 
 		if (players.length === 1) {
 			const playerMetrics = players[0];
-			const isTank = [Spec.SpecFeralBearDruid, Spec.SpecProtectionPaladin].includes(players[0].spec?.specID);
+			const spec = players[0].spec?.specID
+			const isTank = [Spec.SpecFeralBearDruid, Spec.SpecProtectionPaladin].includes(spec);
 			if (playerMetrics.getTargetIndex(filter) === null) {
 				const { chanceOfDeath, dps: dpsMetrics, tps: tpsMetrics, dtps: dtpsMetrics, tmi: tmiMetrics } = playerMetrics;
 
@@ -497,13 +498,15 @@ export class RaidSimResultsManager {
 					unit: 'percentage',
 				});
 
-				resultColumns.push({
-					name: i18n.t('sidebar.results.metrics.cod.label'),
-					average: chanceOfDeath.avg,
-					stdev: chanceOfDeath.stdev,
-					classes: this.getResultsLineClasses('cod'),
-					unit: 'percentage',
-				});
+				if (spec !== Spec.SpecProtectionPaladin) {
+					resultColumns.push({
+						name: i18n.t('sidebar.results.metrics.cod.label'),
+						average: chanceOfDeath.avg,
+						stdev: chanceOfDeath.stdev,
+						classes: this.getResultsLineClasses('cod'),
+						unit: 'percentage',
+					});
+				}
 			} else {
 				const actions = simResult.getRaidIndexedActionMetrics(filter);
 				if (!!actions.length) {

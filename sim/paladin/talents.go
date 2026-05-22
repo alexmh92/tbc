@@ -173,7 +173,7 @@ func (paladin *Paladin) ApplyTalents() {
 	// TODO: Implement cooldown reduction
 
 	// Improved Concentration Aura (Tier 5) - Increases the effect of your Concentration Aura by an additional 5/10/15% and reduces the duration of all Silence and Interrupt effects used against the group by 10/20/30%
-	// TODO: Implement
+	// Implemented in auras.go
 
 	// Spell Warding (Tier 5) - All spell damage taken is reduced by 2/4%
 	if paladin.Talents.SpellWarding > 0 {

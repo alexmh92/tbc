@@ -255,6 +255,9 @@ export class SimLog {
 					CastCompletedLog.parse(params) ||
 					AutoDelayLog.parse(params) ||
 					StatChangeLog.parse(params) ||
+					SpellQueuedLog.parse(params) ||
+					CastFailedLog.parse(params) ||
+					CastPushbackLog.parse(params) ||
 					Promise.resolve(new SimLog(params))
 				);
 			}),
@@ -1343,6 +1346,152 @@ export class StatChangeLog extends SimLog {
 					params.actionId = effectId;
 					const sign = match[1] == 'Lost' ? -1 : 1;
 					return new StatChangeLog(params, sign == 1, match[4]);
+				});
+		} else {
+			return null;
+		}
+	}
+}
+
+// Records when a spell is queued to fire at a future time, typically right
+// before a hardcast or auto-attack completes.
+export class SpellQueuedLog extends SimLog {
+	readonly fireAt: number; // seconds
+	readonly fireAtText: string; // pre-formatted for display
+
+	constructor(params: SimLogParams, fireAt: number, fireAtText: string) {
+		super(params);
+		this.fireAt = fireAt;
+		this.fireAtText = fireAtText;
+	}
+
+	toHTML(includeTimestamp = true) {
+		return this.cacheOutput(includeTimestamp, () => (
+			<>
+				{this.toPrefix(includeTimestamp)} Queueing {this.newActionIdLink()} to cast at {this.fireAtText}.
+			</>
+		));
+	}
+
+	static parse(params: SimLogParams): Promise<SpellQueuedLog> | null {
+		const match = params.raw.match(/Queueing up (.*?) to cast at (\d*?m?)(\d+\.?\d*)(m?s)\./);
+		if (match) {
+			const minutePart = match[2];
+			const seconds = parseFloat(match[3]);
+			let fireAt = seconds;
+			if (minutePart && minutePart.endsWith('m')) {
+				fireAt = parseFloat(minutePart.slice(0, -1)) * 60 + seconds;
+			} else if (match[4] == 'ms') {
+				fireAt = seconds / 1000;
+			}
+			const fireAtText = fireAt >= 1 ? `${minutePart}${seconds.toFixed(2)}s` : `${Math.round(fireAt * 1000)}ms`;
+
+			return ActionId.fromLogString(match[1])
+				.fill(params.source?.index)
+				.then(actionId => {
+					params.actionId = actionId;
+					return new SpellQueuedLog(params, fireAt, fireAtText);
+				});
+		} else {
+			return null;
+		}
+	}
+}
+
+// Go's time.Duration.String() can emit nanosecond-precision strings like
+// "29.999999999s" or "33.217000001s". Round these to something readable
+// without disturbing already-clean values like "30s" or "1.5s".
+const reformatGoDurations = (text: string): string =>
+	text.replace(/(\d+m)?(\d+\.\d{3,})(m?s)/g, (_match, minute: string | undefined, value: string, unit: string) => {
+		const seconds = parseFloat(value);
+		if (unit === 'ms') {
+			return `${minute ?? ''}${Math.round(seconds)}ms`;
+		}
+		return `${minute ?? ''}${seconds.toFixed(2)}s`;
+	});
+
+// The sim's cast-failure reasons all append ", curTime = <duration>", which
+// is redundant with the log line's own timestamp prefix.
+const stripCurTime = (text: string): string => text.replace(/, curTime = [\dms.h]+$/, '');
+
+// Records when a cast attempt was rejected (cooldown, GCD, already casting,
+// resource cost, etc.). The reason text comes from the sim log, with the
+// redundant ", curTime = ..." stripped, durations rounded, and embedded
+// action IDs resolved to names.
+export class CastFailedLog extends SimLog {
+	readonly reason: string;
+
+	constructor(params: SimLogParams, reason: string) {
+		super(params);
+		this.reason = reason;
+	}
+
+	toHTML(includeTimestamp = true) {
+		return this.cacheOutput(includeTimestamp, () => (
+			<>
+				{this.toPrefix(includeTimestamp)} Failed to cast {this.newActionIdLink()}: {this.reason}.
+			</>
+		));
+	}
+
+	static parse(params: SimLogParams): Promise<CastFailedLog> | null {
+		const match = params.raw.match(/] (.*?) failed to cast: (.*)/);
+		if (match) {
+			const cleaned = reformatGoDurations(stripCurTime(match[2]));
+			return Promise.all([ActionId.fromLogString(match[1]).fill(params.source?.index), ActionId.replaceAllInString(cleaned)]).then(
+				([actionId, reason]) => {
+					params.actionId = actionId;
+					return new CastFailedLog(params, reason.replace(/[.!?]$/, ''));
+				},
+			);
+		} else {
+			return null;
+		}
+	}
+}
+
+// Records pushback events emitted when the player takes damage while
+// hardcasting or channeling, delaying the cast or shortening the channel.
+export class CastPushbackLog extends SimLog {
+	readonly pushback: number; // seconds
+	readonly pushbackText: string; // pre-formatted for display
+	readonly isChanneling: boolean;
+
+	constructor(params: SimLogParams, pushback: number, pushbackText: string, isChanneling: boolean) {
+		super(params);
+		this.pushback = pushback;
+		this.pushbackText = pushbackText;
+		this.isChanneling = isChanneling;
+	}
+
+	toHTML(includeTimestamp = true) {
+		return this.cacheOutput(includeTimestamp, () =>
+			this.isChanneling ? (
+				<>
+					{this.toPrefix(includeTimestamp)} {this.newActionIdLink()} lost {this.pushbackText} while channeling due to pushback.
+				</>
+			) : (
+				<>
+					{this.toPrefix(includeTimestamp)} {this.newActionIdLink()} pushed back {this.pushbackText} while casting.
+				</>
+			),
+		);
+	}
+
+	static parse(params: SimLogParams): Promise<CastPushbackLog> | null {
+		const match = params.raw.match(/] (.*?) pushed back (\d+\.?\d*)(m?s) while ((casting)|(channeling))/);
+		if (match) {
+			let pushback = parseFloat(match[2]);
+			if (match[3] == 'ms') {
+				pushback /= 1000;
+			}
+			const pushbackText = pushback >= 1 ? `${pushback.toFixed(2)}s` : `${Math.round(pushback * 1000)}ms`;
+
+			return ActionId.fromLogString(match[1])
+				.fill(params.source?.index)
+				.then(actionId => {
+					params.actionId = actionId;
+					return new CastPushbackLog(params, pushback, pushbackText, match[4] == 'channeling');
 				});
 		} else {
 			return null;

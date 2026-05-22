@@ -1162,8 +1162,8 @@ dps_results: {
 dps_results: {
  key: "TestDestruction-AllItems-VoidheartRaiment"
  value: {
-  dps: 1661.10766
-  tps: 1440.97026
+  dps: 1688.32664
+  tps: 1468.40121
  }
 }
 dps_results: {
