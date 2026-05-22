@@ -41,7 +41,7 @@ character_stats_results: {
   final_stats: 33.75
   final_stats: 33.75
   final_stats: 33.75
-  final_stats: 93.75
+  final_stats: 70
   final_stats: 0
   final_stats: 0
   final_stats: 9.10366
@@ -167,8 +167,8 @@ dps_results: {
 dps_results: {
  key: "TestArcane-AllItems-BandoftheEternalSage-29305"
  value: {
-  dps: 1960.53675
-  tps: 1327.68189
+  dps: 1960.67005
+  tps: 1327.84697
  }
 }
 dps_results: {
@@ -242,6 +242,13 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestArcane-AllItems-Biznicks247x128Accurascope-2523"
+ value: {
+  dps: 1944.26562
+  tps: 1322.02423
+ }
+}
+dps_results: {
  key: "TestArcane-AllItems-BlackenedNaaruSliver-34427"
  value: {
   dps: 1889.33666
@@ -258,8 +265,8 @@ dps_results: {
 dps_results: {
  key: "TestArcane-AllItems-BladeofWizardry-31336"
  value: {
-  dps: 1871.36016
-  tps: 1282.15724
+  dps: 1869.39377
+  tps: 1280.45186
  }
 }
 dps_results: {
@@ -620,6 +627,13 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestArcane-AllItems-IceGuard-2682"
+ value: {
+  dps: 1915.8803
+  tps: 1302.92801
+ }
+}
+dps_results: {
  key: "TestArcane-AllItems-IconofUnyieldingCourage-28121"
  value: {
   dps: 1889.33666
@@ -690,6 +704,20 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestArcane-AllItems-MarkoftheChampion-23206"
+ value: {
+  dps: 1889.33666
+  tps: 1326.50282
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-MarkoftheChampion-23207"
+ value: {
+  dps: 1889.33666
+  tps: 1326.50282
+ }
+}
+dps_results: {
  key: "TestArcane-AllItems-MasqueradeGown-28578"
  value: {
   dps: 1886.445
@@ -753,6 +781,41 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestArcane-AllItems-PendantofFrozenFlame-24092"
+ value: {
+  dps: 1879.02805
+  tps: 1280.48865
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-PendantofShadow'sEnd-24097"
+ value: {
+  dps: 1879.02805
+  tps: 1280.48865
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-PendantofThawing-24093"
+ value: {
+  dps: 1879.02805
+  tps: 1280.48865
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-PendantofWithering-24095"
+ value: {
+  dps: 1879.02805
+  tps: 1280.48865
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-PendantoftheNullRune-24098"
+ value: {
+  dps: 1879.02805
+  tps: 1280.48865
+ }
+}
+dps_results: {
  key: "TestArcane-AllItems-PendantoftheVioletEye-28727"
  value: {
   dps: 1952.87969
@@ -783,8 +846,8 @@ dps_results: {
 dps_results: {
  key: "TestArcane-AllItems-Quagmirran'sEye-27683"
  value: {
-  dps: 1934.42117
-  tps: 1360.25994
+  dps: 1934.53386
+  tps: 1360.35933
  }
 }
 dps_results: {
@@ -804,8 +867,8 @@ dps_results: {
 dps_results: {
  key: "TestArcane-AllItems-RobeoftheElderScribes-28602"
  value: {
-  dps: 1909.01471
-  tps: 1301.42953
+  dps: 1909.04864
+  tps: 1301.44948
  }
 }
 dps_results: {
@@ -820,6 +883,13 @@ dps_results: {
  value: {
   dps: 1889.33666
   tps: 1326.50282
+ }
+}
+dps_results: {
+ key: "TestArcane-AllItems-SavageGuard-2681"
+ value: {
+  dps: 1915.8803
+  tps: 1302.92801
  }
 }
 dps_results: {
@@ -930,13 +1000,6 @@ dps_results: {
 }
 dps_results: {
  key: "TestArcane-AllItems-StabilitzedEterniumScope-2724"
- value: {
-  dps: 1944.26562
-  tps: 1322.02423
- }
-}
-dps_results: {
- key: "TestArcane-AllItems-StabilizedEterniumScope-2523"
  value: {
   dps: 1944.26562
   tps: 1322.02423
@@ -1099,8 +1162,8 @@ dps_results: {
 dps_results: {
  key: "TestArcane-AllItems-WrathofCenarius-21190"
  value: {
-  dps: 1916.35335
-  tps: 1307.94206
+  dps: 1916.58915
+  tps: 1307.99174
  }
 }
 dps_results: {

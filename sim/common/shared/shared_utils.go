@@ -19,6 +19,7 @@ type ProcStatBonusEffect struct {
 	ProcMask           core.ProcMask
 	Outcome            core.HitOutcome
 	RequireDamageDealt bool
+	ClassSpellsOnly    bool
 
 	// Any other custom proc conditions not covered by the above fields.
 	CustomProcCondition core.CustomStatBuffProcCondition
@@ -219,6 +220,7 @@ func factory_StatBonusEffect(config ProcStatBonusEffect, extraSpell func(agent c
 				ProcMask:           config.ProcMask,
 				Outcome:            config.Outcome,
 				RequireDamageDealt: config.RequireDamageDealt,
+				ClassSpellsOnly:    config.ClassSpellsOnly,
 				ProcChance:         proc.GetProcChance(),
 				DPM:                dpm,
 				ICD:                time.Millisecond * time.Duration(proc.IcdMs),

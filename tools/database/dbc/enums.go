@@ -1058,6 +1058,7 @@ const (
 	ITEM_ENHANCEMENT
 	BANDAGE
 	OTHER
+	HERB
 )
 
 type RPPMModifierType int
@@ -1134,6 +1135,9 @@ const (
 
 const (
 	ATTR_EX_3_CAN_PROC_FROM_PROCS int = 0x4000000
+)
+const (
+	ATTR_EX_12_ONLY_PROC_FROM_CLASS_ABILITIES int = 0x80000000
 )
 
 const (

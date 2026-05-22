@@ -315,6 +315,15 @@ type WeaponAttack struct {
 	swingAt       time.Duration
 	previousSwing time.Duration
 
+	// When the next swing would naturally be ready in an uncontested
+	// rotation, ignoring DelayRangedUntil / DelayMeleeBy / PauseMeleeBy.
+	// Used to compute the "auto delay" reported on the timeline.
+	naturalReadyAt time.Duration
+
+	// Set by swing() immediately before firing the cast, read by the ranged
+	// auto-attack ModifyCast to populate cast.AutoSwingDelay.
+	pendingSwingDelay time.Duration
+
 	curSwingSpeed    float64
 	curSwingDuration time.Duration
 	enabled          bool
@@ -356,6 +365,14 @@ func (wa *WeaponAttack) swing(sim *Simulation) time.Duration {
 	// if the attack causes APL evaluations (e.g. from rage gain).
 	wa.previousSwing = wa.swingAt
 	wa.swingAt = sim.CurrentTime + wa.curSwingDuration
+
+	// Capture how late this swing is vs. when it would have been ready in an
+	// uncontested rotation, then advance naturalReadyAt for the next cycle.
+	// Clamped to >=0 because PauseMelee / haste re-scheduling can in principle
+	// produce a negative diff.
+	wa.pendingSwingDelay = max(0, sim.CurrentTime-wa.naturalReadyAt)
+	wa.naturalReadyAt = wa.swingAt
+
 	attackSpell.Cast(sim, wa.unit.CurrentTarget)
 
 	if !sim.Options.Interactive && (wa.unit.Rotation != nil) && !wa.unit.Metrics.isTanking {
@@ -501,6 +518,15 @@ func (unit *Unit) EnableAutoAttacks(agent Agent, options AutoAttackOptions) {
 
 			ModifyCast: func(sim *Simulation, spell *Spell, cast *Cast) {
 				cast.CastTime = spell.CastTime()
+
+				// Emit an "auto delayed" log line whenever the ranged auto fired
+				// later than it would have in an uncontested rotation. Below 1ms
+				// is treated as rounding noise so the common case stays silent.
+				delay := unit.AutoAttacks.RangedPendingSwingDelay()
+				readyAt := sim.CurrentTime - delay
+				if sim.Log != nil && delay > time.Millisecond && readyAt > 0 {
+					spell.Unit.Log(sim, "%s delayed by %s, was ready at %s", spell.ActionID, delay, readyAt)
+				}
 			},
 
 			CastTime: func(spell *Spell) time.Duration {
@@ -578,6 +604,7 @@ func (aa *AutoAttacks) reset(_ *Simulation) {
 		aa.mh.updateSwingDuration(aa.mh.unit.TotalMeleeHasteMultiplier())
 		aa.mh.previousSwing = -aa.MainhandSwingSpeed()
 		aa.mh.swingAt = 0
+		aa.mh.naturalReadyAt = 0
 
 		if aa.IsDualWielding {
 			aa.oh.updateSwingDuration(aa.oh.unit.TotalMeleeHasteMultiplier())
@@ -594,6 +621,7 @@ func (aa *AutoAttacks) reset(_ *Simulation) {
 		aa.ranged.updateSwingDuration(aa.ranged.unit.TotalRangedHasteMultiplier())
 		aa.ranged.previousSwing = -aa.RangedSwingSpeed()
 		aa.ranged.swingAt = 0
+		aa.ranged.naturalReadyAt = 0
 	}
 }
 
@@ -613,6 +641,7 @@ func (aa *AutoAttacks) startPull(sim *Simulation) {
 	if aa.AutoSwingMelee {
 		if aa.mh.swingAt == NeverExpires {
 			aa.mh.swingAt = 0
+			aa.mh.naturalReadyAt = 0
 		}
 
 		if aa.IsDualWielding {
@@ -634,12 +663,12 @@ func (aa *AutoAttacks) startPull(sim *Simulation) {
 	if aa.AutoSwingRanged {
 		if aa.ranged.swingAt == NeverExpires {
 			aa.ranged.swingAt = 0
+			aa.ranged.naturalReadyAt = 0
 		}
 		if aa.ranged.IsInRange() {
 			aa.ranged.enabled = true
 			aa.ranged.addWeaponAttack(sim, aa.ranged.unit.TotalRangedHasteMultiplier())
 		}
-
 	}
 }
 
@@ -699,6 +728,7 @@ func (aa *AutoAttacks) EnableRangedSwing(sim *Simulation) {
 	}
 
 	aa.ranged.swingAt = max(aa.ranged.swingAt, sim.CurrentTime, 0)
+	aa.ranged.naturalReadyAt = aa.ranged.swingAt
 	if aa.ranged.IsInRange() {
 		aa.ranged.enabled = true
 		aa.ranged.addWeaponAttack(sim, aa.ranged.unit.TotalRangedHasteMultiplier())
@@ -743,6 +773,14 @@ func (aa *AutoAttacks) OffhandSwingSpeed() time.Duration {
 // The amount of time between two Ranged swings.
 func (aa *AutoAttacks) RangedSwingSpeed() time.Duration {
 	return aa.ranged.curSwingDuration
+}
+
+func (aa *AutoAttacks) MainHandPendingSwingDelay() time.Duration {
+	return aa.mh.pendingSwingDelay
+}
+
+func (aa *AutoAttacks) RangedPendingSwingDelay() time.Duration {
+	return aa.ranged.pendingSwingDelay
 }
 
 // Optionally replaces the given swing spell with an Agent-specified MH Swing replacer.

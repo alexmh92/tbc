@@ -55,6 +55,9 @@ func RegisterAllProcs() {
 				ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 				Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
 				RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }},
+				{{- if .ProcInfo.ClassSpellsOnly }}
+				ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+				{{- end}}
 			}, []shared.ItemVariant{
 				{{- range .Variants }}
 				{ItemID: {{.ID}}, ItemName: "{{.Name}}"},
@@ -66,6 +69,9 @@ func RegisterAllProcs() {
 				ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 				Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
 				RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }},
+				{{- if .ProcInfo.ClassSpellsOnly }}
+				ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+				{{- end}}
 			}, []shared.ItemVariant{
 				{{- range .Variants }}
 				{ItemID: {{.ID}}, ItemName: "{{.Name}}"},
@@ -78,7 +84,10 @@ func RegisterAllProcs() {
 			//	Callback:           {{ .ProcInfo.Callback | asCoreCallback }},
 			//	ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 			//	Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
-			//	RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }}
+			//	RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }},
+			{{- if .ProcInfo.ClassSpellsOnly }}
+			//	ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+			{{- end}}
 			// }, []shared.ItemVariant{
 				{{- range .Variants }}
 			//	{ItemID: {{.ID}}, ItemName: "{{.Name}}"},
@@ -90,6 +99,9 @@ func RegisterAllProcs() {
 			//	ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 			//	Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
 			//	RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }}
+			{{- if .ProcInfo.ClassSpellsOnly }}
+			// ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+			{{- end}}
 			// }, []shared.ItemVariant{
 				{{- range .Variants }}
 			//	{ItemID: {{.ID}}, ItemName: "{{.Name}}"},
@@ -136,6 +148,9 @@ func RegisterAllEnchants() {
 			ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 			Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
 			RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }},
+			{{- if .ProcInfo.ClassSpellsOnly }}
+			ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+			{{- end}}
 		})
 	{{- else}}
 		// shared.NewProcStatBonusEffect(shared.ProcStatBonusEffect{
@@ -147,6 +162,9 @@ func RegisterAllEnchants() {
 		//	ProcMask:           {{ .ProcInfo.ProcMask | asCoreProcMask }},
 		//	Outcome:            {{ .ProcInfo.Outcome | asCoreOutcome }},
 		//	RequireDamageDealt: {{ .ProcInfo.RequireDamageDealt }},
+		{{- if .ProcInfo.ClassSpellsOnly }}
+		//  ClassSpellsOnly:    {{ .ProcInfo.ClassSpellsOnly }},
+		{{- end}}
 		// })
 	{{- end}}
 {{- end }}

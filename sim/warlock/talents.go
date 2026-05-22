@@ -112,10 +112,6 @@ func (warlock *Warlock) registerAmplifyCurse() {
 				warlock.AmplifyCurseAura.Deactivate(sim)
 			}
 		},
-	}).AttachSpellMod(core.SpellModConfig{
-		Kind:       core.SpellMod_DamageDone_Pct,
-		FloatValue: 0.5,
-		ClassMask:  WarlockSpellCurseOfAgony | WarlockSpellCurseOfDoom,
 	})
 
 	warlock.AmplifyCurse = warlock.RegisterSpell(core.SpellConfig{

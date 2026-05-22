@@ -6,8 +6,19 @@ func MapResistanceToStat(index int) (proto.Stat, bool) {
 	switch index {
 	case 0:
 		return proto.Stat_StatBonusArmor, true
+	// 1 = Holy (no proto stat)
+	case 2:
+		return proto.Stat_StatFireResistance, true
+	case 3:
+		return proto.Stat_StatNatureResistance, true
+	case 4:
+		return proto.Stat_StatFrostResistance, true
+	case 5:
+		return proto.Stat_StatShadowResistance, true
+	case 6:
+		return proto.Stat_StatArcaneResistance, true
 	}
-	return proto.Stat_StatBonusArmor, false
+	return 0, false
 }
 
 var MapArmorSubclassToArmorType = map[int]proto.ArmorType{
@@ -236,6 +247,7 @@ var SpellSchoolToSpellDamageStat = map[SpellSchool]proto.Stat{
 	NATURE:   proto.Stat_StatNatureDamage,
 	FROST:    proto.Stat_StatFrostDamage,
 	SHADOW:   proto.Stat_StatShadowDamage,
+	HOLY:     proto.Stat_StatHolyDamage,
 	PHYSICAL: proto.Stat_StatPhysicalDamage,
 }
 var SpellSchoolToResistanceStat = map[SpellSchool]proto.Stat{
@@ -274,6 +286,7 @@ var consumableClassToProto = map[ConsumableClass]proto.ConsumableType{
 	FOOD:                   proto.ConsumableType_ConsumableTypeFood,
 	BANDAGE:                proto.ConsumableType_ConsumableTypeUnknown,
 	OTHER:                  proto.ConsumableType_ConsumableTypeOther,
+	HERB:                   proto.ConsumableType_ConsumableTypeHerb,
 }
 
 var MapPowerTypeEnumToResourceType = map[int32]proto.ResourceType{

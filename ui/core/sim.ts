@@ -23,7 +23,6 @@ import {
 	Profession,
 	PseudoStat,
 	RangedWeaponType,
-	Spec,
 	Stat,
 	UnitReference,
 	UnitReference_Type as UnitType,
@@ -193,7 +192,7 @@ export class Sim {
 	 * Whether the current environment should use wasm/worker concurrency methods.
 	 * @returns true if running wasm workers and concurrency setting is active.
 	 */
-	private async shouldUseWasmConcurrency() {
+	async shouldUseWasmConcurrency() {
 		return (await this.isWasm()) && this.getWasmConcurrency() >= 2 && this.workerPool.getNumWorkers() >= 2;
 	}
 
@@ -644,10 +643,7 @@ export class Sim {
 	}
 
 	getShowHealingMetrics(): boolean {
-		return (
-			this.showHealingMetrics ||
-			(this.showThreatMetrics && [Spec.SpecFeralBearDruid, Spec.SpecProtectionPaladin].includes(this.raid.getPlayer(0)?.playerSpec.specID))
-		);
+		return this.showHealingMetrics;
 	}
 	setShowHealingMetrics(eventID: EventID, newShowHealingMetrics: boolean) {
 		if (newShowHealingMetrics != this.showHealingMetrics) {

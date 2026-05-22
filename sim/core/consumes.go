@@ -387,10 +387,6 @@ func registerConjuredCD(agent Agent, consumes *proto.ConsumesSpec) {
 			conjuredMCD = makeConjuredActivationSpell(conjuredId, character)
 		}
 
-		if consumes.NightmareSeed {
-			conjuredMCD = makeConjuredActivationSpell(22797, character)
-		}
-
 		if conjuredMCD.Spell != nil {
 			oldShouldActivate := conjuredMCD.ShouldActivate
 			conjuredMCD.ShouldActivate = func(sim *Simulation, character *Character) bool {
@@ -431,8 +427,8 @@ func makeConjuredActivationSpellInternal(conjured Consumable, character *Charact
 			Duration: cooldownDuration,
 		},
 		SharedCD: Cooldown{
-			Timer:    character.GetConjuredCD(),
-			Duration: cooldownDuration,
+			Timer:    character.GetOrInitSpellCategoryTimer(conjured.CategoryId),
+			Duration: time.Minute * 2,
 		},
 	}
 
@@ -585,6 +581,7 @@ func (character *Character) newBasicExplosiveSpellConfig(sharedTimer *Timer, act
 		ActionID:     actionID,
 		SpellSchool:  school,
 		ProcMask:     ProcMaskEmpty,
+		Flags:        SpellFlagExplosive,
 		MissileSpeed: speed,
 
 		Cast: CastConfig{
@@ -688,17 +685,52 @@ func registerStaticImbue(agent Agent, imbueId int32, isMH bool) {
 		character.AddStat(stats.SpellCritRating, 14)
 	case 28017: // Superior Wizard Oil
 		character.AddStat(stats.SpellDamage, 42)
-	case 29453, 34340: // Addy Stone
+	case 29453: // Addy Sharpstone
 		character.AddStat(stats.MeleeCritRating, 14)
 		if isMH {
 			character.AutoAttacks.MH().BaseDamageMax += 12
 			character.AutoAttacks.MH().BaseDamageMin += 12
+
+			if character.AutoAttacks.OH() != nil {
+				character.AutoAttacks.OH().BaseDamageMax += 12
+				character.AutoAttacks.OH().BaseDamageMin += 12
+			}
 		} else {
 			character.AutoAttacks.OH().BaseDamageMax += 12
 			character.AutoAttacks.OH().BaseDamageMin += 12
-		}
 
-		if imbueId == 34340 && character.AutoAttacks.Ranged() != nil {
+			if character.AutoAttacks.MH() != nil {
+				character.AutoAttacks.MH().BaseDamageMax += 12
+				character.AutoAttacks.MH().BaseDamageMin += 12
+			}
+		}
+		if character.AutoAttacks.Ranged() != nil {
+			character.AutoAttacks.Ranged().BaseDamageMin += 12
+			character.AutoAttacks.Ranged().BaseDamageMax += 12
+		}
+		// Keep Ranged Crit the same
+		character.AddStat(stats.RangedCritPercent, -(14 / PhysicalCritRatingPerCritPercent))
+
+	case 34340: // Addy Weightstone
+		character.AddStat(stats.MeleeCritRating, 14)
+		if isMH {
+			character.AutoAttacks.MH().BaseDamageMax += 12
+			character.AutoAttacks.MH().BaseDamageMin += 12
+
+			if character.AutoAttacks.OH() != nil {
+				character.AutoAttacks.OH().BaseDamageMax += 12
+				character.AutoAttacks.OH().BaseDamageMin += 12
+			}
+		} else {
+			character.AutoAttacks.OH().BaseDamageMax += 12
+			character.AutoAttacks.OH().BaseDamageMin += 12
+
+			if character.AutoAttacks.MH() != nil {
+				character.AutoAttacks.MH().BaseDamageMax += 12
+				character.AutoAttacks.MH().BaseDamageMin += 12
+			}
+		}
+		if character.AutoAttacks.Ranged() != nil {
 			character.AutoAttacks.Ranged().BaseDamageMin += 12
 			character.AutoAttacks.Ranged().BaseDamageMax += 12
 		}

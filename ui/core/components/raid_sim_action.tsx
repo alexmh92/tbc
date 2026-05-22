@@ -466,9 +466,8 @@ export class RaidSimResultsManager {
 
 		if (players.length === 1) {
 			const playerMetrics = players[0];
-			const showHPSMetricsForTanks = [Spec.SpecFeralBearDruid, Spec.SpecProtectionPaladin].includes(
-				players[0].spec?.specID,
-			);
+			const spec = players[0].spec?.specID
+			const isTank = [Spec.SpecFeralBearDruid, Spec.SpecProtectionPaladin].includes(spec);
 			if (playerMetrics.getTargetIndex(filter) === null) {
 				const { chanceOfDeath, dps: dpsMetrics, tps: tpsMetrics, dtps: dtpsMetrics, tmi: tmiMetrics } = playerMetrics;
 
@@ -491,16 +490,6 @@ export class RaidSimResultsManager {
 					classes: this.getResultsLineClasses('dtps'),
 				});
 
-				if (showHPSMetricsForTanks) {
-					const { hps } = playerMetrics;
-					resultColumns.push({
-						name: i18n.t('sidebar.results.metrics.hps.label'),
-						average: hps.avg,
-						stdev: hps.stdev,
-						classes: this.getResultsLineClasses('hps'),
-					});
-				}
-
 				resultColumns.push({
 					name: i18n.t('sidebar.results.metrics.tmi.label'),
 					average: tmiMetrics.avg,
@@ -509,13 +498,15 @@ export class RaidSimResultsManager {
 					unit: 'percentage',
 				});
 
-				resultColumns.push({
-					name: i18n.t('sidebar.results.metrics.cod.label'),
-					average: chanceOfDeath.avg,
-					stdev: chanceOfDeath.stdev,
-					classes: this.getResultsLineClasses('cod'),
-					unit: 'percentage',
-				});
+				if (spec !== Spec.SpecProtectionPaladin) {
+					resultColumns.push({
+						name: i18n.t('sidebar.results.metrics.cod.label'),
+						average: chanceOfDeath.avg,
+						stdev: chanceOfDeath.stdev,
+						classes: this.getResultsLineClasses('cod'),
+						unit: 'percentage',
+					});
+				}
 			} else {
 				const actions = simResult.getRaidIndexedActionMetrics(filter);
 				if (!!actions.length) {
@@ -547,18 +538,9 @@ export class RaidSimResultsManager {
 						classes: this.getResultsLineClasses('dtps'),
 					});
 				}
-
-				if (showHPSMetricsForTanks) {
-					resultColumns.push({
-						name: i18n.t('sidebar.results.metrics.hps.label'),
-						average: playerMetrics.hps.avg,
-						stdev: playerMetrics.hps.stdev,
-						classes: this.getResultsLineClasses('hps'),
-					});
-				}
 			}
 
-			if (!showHPSMetricsForTanks) {
+			if (!isTank) {
 				resultColumns.push({
 					name: i18n.t('sidebar.results.metrics.tto.label'),
 					average: playerMetrics.tto.avg,

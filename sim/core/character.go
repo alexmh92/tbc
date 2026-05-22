@@ -421,6 +421,58 @@ func (character *Character) Finalize() {
 
 	character.PseudoStats.ParryHaste = character.PseudoStats.CanParry
 
+	if character.Unit.Metrics.isTanking {
+		character.HardcastAvoidanceAura = character.RegisterAura(Aura{
+			Label:    "Reduced avoidance",
+			Duration: NeverExpires,
+			OnGain: func(aura *Aura, sim *Simulation) {
+				character.PseudoStats.Stunned = true
+			},
+			OnExpire: func(aura *Aura, sim *Simulation) {
+				character.PseudoStats.Stunned = false
+			},
+		})
+
+		character.MakeProcTriggerAura(ProcTrigger{
+			Name:               "Pushback trigger",
+			Callback:           CallbackOnSpellHitTaken,
+			Outcome:            OutcomeLanded,
+			RequireDamageDealt: true,
+
+			ExtraCondition: func(sim *Simulation, spell *Spell, result *SpellResult) bool {
+				return character.Hardcast.Expires > sim.CurrentTime &&
+					// Dots will not trigger pushback
+					!(spell.dots != nil || spell.aoeDot != nil || (spell.RelatedDotSpell != nil && (spell.RelatedDotSpell.dots != nil || spell.RelatedDotSpell.aoeDot != nil)))
+			},
+
+			Handler: func(sim *Simulation, spell *Spell, result *SpellResult) {
+				if !sim.Proc(character.PseudoStats.PushbackChance, "Pushback") {
+					return
+				}
+
+				if character.Hardcast.IsChanneled {
+					// Channeled spells will lose 25% of their total duration
+					pushback := character.Hardcast.CastTime / 4
+					character.Hardcast.Expires = max(sim.CurrentTime, character.Hardcast.Expires-pushback)
+
+					if sim.Log != nil {
+						character.Log(sim, "%s pushed back %s while channeling", character.Hardcast.ActionID, pushback)
+					}
+				} else {
+					// Non-channeled spells will be pushed back by 0.5s
+					character.Hardcast.Expires += SpellPushbackDuration
+
+					if sim.Log != nil {
+						character.Log(sim, "%s pushed back %s while casting", character.Hardcast.ActionID, SpellPushbackDuration)
+					}
+				}
+
+				// Re-schedule the cast at the new Expires time
+				character.newHardcastAction(sim)
+			},
+		})
+	}
+
 	character.Unit.finalize()
 
 	character.majorCooldownManager.finalize()
@@ -706,6 +758,9 @@ func (character *Character) GetMetricsProto() *proto.UnitMetrics {
 
 func (character *Character) GetDefensiveTrinketCD() *Timer {
 	return character.GetOrInitSpellCategoryTimer(1190)
+}
+func (character *Character) GetCombatConsumableCD() *Timer {
+	return character.GetOrInitSpellCategoryTimer(1153)
 }
 func (character *Character) GetOffensiveTrinketCD() *Timer {
 	return character.GetOrInitSpellCategoryTimer(1141)

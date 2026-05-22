@@ -161,10 +161,10 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecRogue, {
 			defaultGear: {
 				[Faction.Unknown]: {},
 				[Faction.Alliance]: {
-					1: Presets.P1_SWORDS_GEAR.gear,
+					1: Presets.P2_SWORDS_GEAR.gear,
 				},
 				[Faction.Horde]: {
-					1: Presets.P1_SWORDS_GEAR.gear,
+					1: Presets.P2_SWORDS_GEAR.gear,
 				},
 			},
 			otherDefaults: Presets.OtherDefaults,

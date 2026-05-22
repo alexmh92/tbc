@@ -50,6 +50,7 @@ func (c *Consumable) ToProto() *proto.Consumable {
 		BuffDuration:             int32(c.Duration / 1000),
 		CooldownDuration:         int32(c.CooldownDuration / 1000),
 		CategoryCooldownDuration: int32(c.CategoryCooldownDuration / 1000),
+		CategoryId:               int32(c.SpellCategoryID),
 		EffectIds:                c.GetNonStatEffectIds(),
 	}
 }

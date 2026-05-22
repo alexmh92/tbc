@@ -37,6 +37,10 @@ func (mage *Mage) registerManaGems() {
 				Timer:    mage.GetConjuredCD(),
 				Duration: time.Minute * 2,
 			},
+			SharedCD: core.Cooldown{
+				Timer:    mage.GetCombatConsumableCD(),
+				Duration: time.Minute * 2,
+			},
 		},
 
 		// Don't use if we don't have any gems remaining!

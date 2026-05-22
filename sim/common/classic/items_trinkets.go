@@ -82,6 +82,8 @@ func init() {
 				arpAura.Activate(sim)
 				arpAura.AddStack(sim)
 			},
+		}).ApplyOnExpire(func(aura *core.Aura, sim *core.Simulation) {
+			arpAura.Deactivate(sim)
 		})
 
 		spell := character.RegisterSpell(core.SpellConfig{

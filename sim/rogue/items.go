@@ -98,7 +98,7 @@ var Tier5 = core.NewItemSet(core.ItemSet{
 				ProcMask: core.ProcMaskMelee,
 				Outcome:  core.OutcomeLanded,
 				Callback: core.CallbackOnSpellHitDealt,
-				DPM:      rogue.NewLegacyPPMManager(1.0, core.ProcMaskMelee),
+				DPM:      rogue.NewLegacyPPMManager(0.5, core.ProcMaskMelee),
 				Handler: func(sim *core.Simulation, spell *core.Spell, result *core.SpellResult) {
 					mod.Activate(sim)
 				},

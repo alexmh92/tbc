@@ -26,6 +26,7 @@ type ProcInfo struct {
 	ProcMask            core.ProcMask
 	MaxCumulativeStacks int32
 	RequireDamageDealt  bool
+	ClassSpellsOnly     bool
 }
 
 // Entry represents a effect with its Item ID, Spell ID and display name.
@@ -551,6 +552,8 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 		MaxCumulativeStacks: procSpell.MaxCumulativeStacks,
 	}
 
+	requiresOutcome := true
+
 	// On hit proc
 	if itemType == proto.ItemType_ItemTypeWeapon {
 		info.Callback |= core.CallbackOnSpellHitDealt
@@ -560,6 +563,10 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 	if itemType == proto.ItemType_ItemTypeRanged {
 		info.Callback |= core.CallbackOnSpellHitDealt
 		info.ProcMask |= core.ProcMaskRanged
+	}
+
+	if procSpell.Attributes[12]&dbc.ATTR_EX_12_ONLY_PROC_FROM_CLASS_ABILITIES > 0 {
+		info.ClassSpellsOnly = true
 	}
 
 	if len(procSpell.SpellClassMask) > 0 {
@@ -612,7 +619,13 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 			return info, false
 		}
 
-		if procSpell.ProcTypeMask[0]&dbc.PROC_FLAG_ANY_DIRECT_DEALT > 0 {
+		// In TBC spells with ONLY ProcMask PROC_FLAG_DEAL_HARMFUL_SPELL
+		// seem to not care about landing or not
+		if procSpell.ProcTypeMask[0] == dbc.PROC_FLAG_DEAL_HARMFUL_SPELL {
+			info.Callback |= core.CallbackOnCastComplete
+			info.RequireDamageDealt = false
+			requiresOutcome = false
+		} else if procSpell.ProcTypeMask[0]&dbc.PROC_FLAG_ANY_DIRECT_DEALT > 0 {
 			info.Callback |= core.CallbackOnSpellHitDealt
 
 			if procSpell.ProcTypeMask[0]&dbc.PROC_FLAG_DEAL_HARMFUL_SPELL > 0 {
@@ -657,10 +670,12 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 		info.ProcMask |= core.ProcMaskSpellDamageProc
 	}
 
-	if critMatcher.MatchString(tooltip) {
-		info.Outcome = core.OutcomeCrit
-	} else {
-		info.Outcome = core.OutcomeLanded
+	if requiresOutcome {
+		if critMatcher.MatchString(tooltip) {
+			info.Outcome = core.OutcomeCrit
+		} else {
+			info.Outcome = core.OutcomeLanded
+		}
 	}
 
 	// check for pure healing spell
@@ -670,7 +685,7 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 	}
 
 	unsupported := info.Callback == core.CallbackEmpty &&
-		info.Outcome == core.OutcomeEmpty &&
+		(requiresOutcome && info.Outcome == core.OutcomeEmpty) &&
 		info.ProcMask == core.ProcMaskEmpty
 
 	return info, !unsupported

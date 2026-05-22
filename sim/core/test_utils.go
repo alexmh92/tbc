@@ -69,6 +69,7 @@ var FullPartyBuffs = &proto.PartyBuffs{
 	SanctityAura:          proto.TristateEffect_TristateEffectImproved,
 	DevotionAura:          proto.TristateEffect_TristateEffectImproved,
 	RetributionAura:       proto.TristateEffect_TristateEffectImproved,
+	ConcentrationAura:     proto.TristateEffect_TristateEffectImproved,
 	TrueshotAura:          true,
 	DraeneiRacialMelee:    true,
 	DraeneiRacialCaster:   true,
@@ -80,6 +81,7 @@ var FullPartyBuffs = &proto.PartyBuffs{
 	EyeOfTheNight:         true,
 	ChainOfTheTwilightOwl: true,
 	JadePendantOfBlasting: true,
+	TotemTwisting:         true,
 
 	ManaSpringTotem:      proto.TristateEffect_TristateEffectImproved,
 	ManaTideTotems:       1,

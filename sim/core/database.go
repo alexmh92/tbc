@@ -99,6 +99,7 @@ type Consumable struct {
 	BuffDuration             time.Duration
 	CooldownDuration         time.Duration
 	CategoryCooldownDuration time.Duration
+	CategoryId               int32
 	EffectIds                []int32
 }
 
@@ -112,6 +113,7 @@ func ConsumableFromProto(consumable *proto.Consumable) Consumable {
 		BuffDuration:             time.Second * time.Duration(consumable.BuffDuration),
 		CooldownDuration:         time.Second * time.Duration(consumable.CooldownDuration),
 		CategoryCooldownDuration: time.Second * time.Duration(consumable.CategoryCooldownDuration),
+		CategoryId:               consumable.CategoryId,
 		EffectIds:                consumable.EffectIds,
 	}
 }
@@ -127,6 +129,7 @@ type Item struct {
 	WeaponDamageMin  float64
 	WeaponDamageMax  float64
 	SwingSpeed       float64
+	QualityModifier  float64 // Per-item offset to weapon "average damage"; negative for caster weapons.
 
 	Name    string
 	Stats   stats.Stats // Stats applied to wearer
@@ -159,6 +162,7 @@ func ItemFromProto(pData *proto.SimItem) Item {
 		HandType:         pData.HandType,
 		RangedWeaponType: pData.RangedWeaponType,
 		SwingSpeed:       pData.WeaponSpeed,
+		QualityModifier:  pData.QualityModifier,
 		GemSockets:       pData.GemSockets,
 		SocketBonus:      stats.FromProtoArray(pData.SocketBonus),
 		SetName:          pData.SetName,
