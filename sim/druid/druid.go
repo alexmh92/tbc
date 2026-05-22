@@ -59,7 +59,7 @@ type Druid struct {
 	Rejuvenation         *DruidSpell
 	Rip                  *DruidSpell
 	Shred                *DruidSpell
-	Starfire             *DruidSpell
+	Starfire             []*DruidSpell
 	TigersFury           *DruidSpell
 	Swipe                *DruidSpell
 	Wrath                *DruidSpell
@@ -240,7 +240,7 @@ func (druid *Druid) registerFormBreakingConsumes() {
 }
 
 func (druid *Druid) RegisterBalanceSpells() {
-	druid.registerStarfireSpell()
+	StarfireRankMap.RegisterAll(druid.registerStarfireSpell)
 	druid.registerMoonfireSpell()
 	druid.registerWrathSpell()
 	druid.registerHurricaneSpell()

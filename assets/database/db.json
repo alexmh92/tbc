@@ -9613,6 +9613,7 @@
 {"id":9634,"name":"Dire Bear Form","icon":"ability_racial_bearform","hasBuff":true},
 {"id":9799,"name":"Eye for an Eye","icon":"spell_holy_eyeforaneye","rank":1},
 {"id":9846,"name":"Tiger's Fury","icon":"ability_mount_jungletiger","rank":4,"hasBuff":true},
+{"id":9876,"name":"Starfire","icon":"spell_arcane_starfire","rank":6},
 {"id":10060,"name":"Power Infusion","icon":"spell_holy_powerinfusion","hasBuff":true},
 {"id":10216,"name":"Flamestrike","icon":"spell_fire_selfdestruct","rank":6,"hasBuff":true},
 {"id":10310,"name":"Lay on Hands","icon":"spell_holy_layonhands","rank":3},
