@@ -69,14 +69,14 @@ func (paladin *Paladin) registerConsecration(rankConfig shared.SpellRankConfig) 
 			TickLength:       time.Second * 1,
 			BonusCoefficient: coefficient,
 			OnTick: func(sim *core.Simulation, _ *core.Unit, dot *core.Dot) {
-				dot.Spell.CalcAndDealPeriodicAoeDamage(sim, minDamage, dot.Spell.OutcomeAlwaysHit)
+				dot.Spell.CalcAndDealPeriodicAoeDamage(sim, minDamage, dot.OutcomeTickMagicHit)
 			},
 		},
 
 		ApplyEffects: func(sim *core.Simulation, target *core.Unit, spell *core.Spell) {
 			dot := spell.AOEDot()
 			dot.Apply(sim)
-			dot.Spell.CalcAndDealPeriodicAoeDamage(sim, minDamage, dot.Spell.OutcomeAlwaysHit)
+			dot.Spell.CalcAndDealPeriodicAoeDamage(sim, minDamage, dot.OutcomeTickMagicHit)
 		},
 	})
 }
