@@ -203,10 +203,30 @@ func (spell *Spell) BonusDamage(attackTable *AttackTable) float64 {
 	if spell.SpellSchool.Matches(SpellSchoolPhysical) {
 		bonusDamage += spell.Unit.stats[stats.PhysicalDamage]
 	} else {
-		bonusDamage += spell.SpellDamage(attackTable.Defender) + attackTable.MobTypeBonusStats[attackTable.Defender.MobType][stats.SpellDamage] + attackTable.Defender.PseudoStats.SchoolBonusSpellDamage[spell.SchoolIndex]
+		bonusDamage += spell.SpellDamage(attackTable.Defender) + attackTable.MobTypeBonusStats[attackTable.Defender.MobType][stats.SpellDamage]
 	}
 
 	return bonusDamage
+}
+
+// EffectiveTargetBonusCoefficient returns TargetBonusCoefficient when non-zero,
+// otherwise falls back to BonusCoefficient. Both zero means no post-attacker
+// SchoolBonusSpellDamage contribution.
+func (spell *Spell) EffectiveTargetBonusCoefficient() float64 {
+	if spell.TargetBonusCoefficient != 0 {
+		return spell.TargetBonusCoefficient
+	}
+	return spell.BonusCoefficient
+}
+
+// TargetSchoolBonusDamage returns the raw per-school SP bonus on the target
+// for this spell's school. Returns 0 for physical-school spells (no per-school
+// physical bonus exists on PseudoStats.SchoolBonusSpellDamage).
+func (spell *Spell) TargetSchoolBonusDamage(target *Unit) float64 {
+	if spell.SpellSchool.Matches(SpellSchoolPhysical) {
+		return 0
+	}
+	return target.PseudoStats.SchoolBonusSpellDamage[spell.SchoolIndex]
 }
 
 func (spell *Spell) SpellSchoolBonusDamage() float64 {
@@ -313,6 +333,7 @@ func (spell *Spell) calcDamageInternal(sim *Simulation, target *Unit, baseDamage
 
 	if sim.Log == nil {
 		result.Damage *= attackerMultiplier
+		result.Damage += spell.EffectiveTargetBonusCoefficient() * spell.TargetSchoolBonusDamage(target)
 		result.applyResistances(sim, spell, isPeriodic, attackTable)
 		result.applyTargetModifiers(sim, spell, attackTable, isPeriodic)
 
@@ -331,8 +352,11 @@ func (spell *Spell) calcDamageInternal(sim *Simulation, target *Unit, baseDamage
 
 		spell.ApplyPostOutcomeDamageModifiers(sim, result, isPeriodic)
 	} else {
+		targetSchoolBonus := spell.TargetSchoolBonusDamage(target)
 		result.Damage *= attackerMultiplier
 		afterAttackMods := result.Damage
+		result.Damage += spell.EffectiveTargetBonusCoefficient() * targetSchoolBonus
+		afterTargetSchoolBonus := result.Damage
 		result.applyResistances(sim, spell, isPeriodic, attackTable)
 		afterResistances := result.Damage
 		result.applyTargetModifiers(sim, spell, attackTable, isPeriodic)
@@ -357,8 +381,8 @@ func (spell *Spell) calcDamageInternal(sim *Simulation, target *Unit, baseDamage
 
 		spell.Unit.Log(
 			sim,
-			"%s %s [DEBUG] MAP: %0.01f, RAP: %0.01f, SP: %0.01f, BaseDamage:%0.01f, AfterAttackerMods:%0.01f, AfterResistances:%0.01f, AfterTargetMods:%0.01f, AfterOutcome:%0.01f, AfterPostOutcome:%0.01f",
-			target.LogLabel(), spell.ActionID, spell.Unit.GetStat(stats.AttackPower), spell.Unit.GetStat(stats.RangedAttackPower), spell.SpellDamage(target), baseDamage, afterAttackMods, afterResistances, afterTargetMods, afterOutcome, afterPostOutcome)
+			"%s %s [DEBUG] MAP: %0.01f, RAP: %0.01f, SP: %0.01f, TargetSchoolBonus: %0.01f, BaseDamage:%0.01f, AfterAttackerMods:%0.01f, AfterTargetSchoolBonus:%0.01f, AfterResistances:%0.01f, AfterTargetMods:%0.01f, AfterOutcome:%0.01f, AfterPostOutcome:%0.01f",
+			target.LogLabel(), spell.ActionID, spell.Unit.GetStat(stats.AttackPower), spell.Unit.GetStat(stats.RangedAttackPower), spell.SpellDamage(target), targetSchoolBonus, baseDamage, afterAttackMods, afterTargetSchoolBonus, afterResistances, afterTargetMods, afterOutcome, afterPostOutcome)
 	}
 
 	result.Threat = spell.ThreatFromDamage(sim, result.Outcome, result.Damage, attackTable)
