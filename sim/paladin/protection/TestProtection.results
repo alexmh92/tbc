@@ -1746,24 +1746,24 @@ dps_results: {
 dps_results: {
  key: "TestProtection-Settings-BloodElf-p2-Protection-sov-FullBuffs-5.0yards-LongMultiTarget"
  value: {
-  dps: 1204.14691
-  tps: 1571.00565
+  dps: 1206.62694
+  tps: 1575.71771
   dtps: 54125.99793
  }
 }
 dps_results: {
  key: "TestProtection-Settings-BloodElf-p2-Protection-sov-FullBuffs-5.0yards-LongSingleTarget"
  value: {
-  dps: 813.53568
-  tps: 1406.01814
+  dps: 826.13791
+  tps: 1429.96238
   dtps: 1270.90438
  }
 }
 dps_results: {
  key: "TestProtection-Settings-BloodElf-p2-Protection-sov-FullBuffs-5.0yards-ShortSingleTarget"
  value: {
-  dps: 880.4681
-  tps: 1493.79921
+  dps: 892.33302
+  tps: 1516.34256
   dtps: 1349.94412
  }
 }
@@ -1842,24 +1842,24 @@ dps_results: {
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-sov-FullBuffs-5.0yards-LongMultiTarget"
  value: {
-  dps: 1223.91454
-  tps: 1590.9553
+  dps: 1226.42889
+  tps: 1595.73256
   dtps: 54134.64766
  }
 }
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-sov-FullBuffs-5.0yards-LongSingleTarget"
  value: {
-  dps: 826.10457
-  tps: 1422.84454
+  dps: 838.89617
+  tps: 1447.14859
   dtps: 1271.11463
  }
 }
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-sov-FullBuffs-5.0yards-ShortSingleTarget"
  value: {
-  dps: 896.26792
-  tps: 1510.83826
+  dps: 908.36023
+  tps: 1533.81364
   dtps: 1350.16771
  }
 }

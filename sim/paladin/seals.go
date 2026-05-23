@@ -754,7 +754,9 @@ func (paladin *Paladin) registerSealOfVengeance() {
 		ThreatMultiplier: 1,
 		ApplyEffects: func(sim *core.Simulation, target *core.Unit, spell *core.Spell) {
 			attackTable := spell.Unit.AttackTables[target.UnitIndex]
-			damage := (10 + spell.BonusDamage(attackTable)*0.034/3) * paladin.MainHand().SwingSpeed
+			swingSpeed := paladin.MainHand().SwingSpeed
+			spell.TargetBonusCoefficient = 0.034 / 3 * swingSpeed
+			damage := (10 + spell.BonusDamage(attackTable)*0.034/3) * swingSpeed
 			spell.CalcAndDealDamage(sim, target, damage, spell.OutcomeMagicHit)
 		},
 	})
@@ -777,7 +779,9 @@ func (paladin *Paladin) registerSealOfVengeance() {
 			TickLength:    time.Second * 3,
 			OnSnapshot: func(sim *core.Simulation, target *core.Unit, dot *core.Dot) {
 				attackTable := dot.Spell.Unit.AttackTables[target.UnitIndex]
-				dot.Snapshot(target, 30+dot.Spell.BonusDamage(attackTable)*0.034*float64(dot.GetStacks()))
+				stacks := float64(dot.GetStacks())
+				dot.Spell.TargetBonusCoefficient = 0.034 * stacks
+				dot.Snapshot(target, 30+dot.Spell.BonusDamage(attackTable)*0.034*stacks)
 			},
 			OnTick: func(sim *core.Simulation, target *core.Unit, dot *core.Dot) {
 				dot.CalcAndDealPeriodicSnapshotDamage(sim, target, dot.OutcomeTick)
