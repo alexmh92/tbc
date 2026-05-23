@@ -65,7 +65,7 @@ func (paladin *Paladin) registerConsecration(rankConfig shared.SpellRankConfig) 
 				ActionID: core.ActionID{SpellID: spellID},
 				Label:    "Consecration" + paladin.Label + " " + rankConfig.GetRankLabel(),
 			},
-			NumberOfTicks:    8,
+			NumberOfTicks:    7,
 			TickLength:       time.Second * 1,
 			BonusCoefficient: coefficient,
 			OnTick: func(sim *core.Simulation, _ *core.Unit, dot *core.Dot) {
@@ -74,7 +74,9 @@ func (paladin *Paladin) registerConsecration(rankConfig shared.SpellRankConfig) 
 		},
 
 		ApplyEffects: func(sim *core.Simulation, target *core.Unit, spell *core.Spell) {
-			spell.AOEDot().Apply(sim)
+			dot := spell.AOEDot()
+			dot.Apply(sim)
+			dot.Spell.CalcAndDealPeriodicAoeDamage(sim, minDamage, dot.Spell.OutcomeAlwaysHit)
 		},
 	})
 }
