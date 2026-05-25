@@ -553,9 +553,11 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 	}
 
 	requiresOutcome := true
+	onHitProc := false
 
 	// On hit proc
 	if itemType == proto.ItemType_ItemTypeWeapon {
+		onHitProc = true
 		info.Callback |= core.CallbackOnSpellHitDealt
 		info.ProcMask |= core.ProcMaskUnknown
 	}
@@ -573,7 +575,7 @@ func BuildSpellProcInfo(procSpell *dbc.Spell, tooltip string, itemType proto.Ite
 		return info, false
 	}
 
-	if len(procSpell.ProcTypeMask) > 0 {
+	if !onHitProc && len(procSpell.ProcTypeMask) > 0 {
 		if procSpell.ProcTypeMask[0]&dbc.PROC_FLAG_DEAL_MELEE_SWING > 0 {
 			info.ProcMask |= core.ProcMaskMeleeWhiteHit
 		}

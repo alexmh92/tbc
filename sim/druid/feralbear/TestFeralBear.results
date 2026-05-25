@@ -874,8 +874,8 @@ dps_results: {
 dps_results: {
  key: "TestFeralBear-AllItems-Heartrazor-29962"
  value: {
-  dps: 442.68926
-  tps: 682.65937
+  dps: 439.77332
+  tps: 678.21285
   dtps: 1081.53892
   hps: 76.92983
  }

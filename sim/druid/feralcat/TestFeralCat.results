@@ -781,8 +781,8 @@ dps_results: {
 dps_results: {
  key: "TestFeralCat-AllItems-Heartrazor-29962"
  value: {
-  dps: 774.88284
-  tps: 550.16682
+  dps: 769.12767
+  tps: 546.08065
   hps: 70.91338
  }
 }

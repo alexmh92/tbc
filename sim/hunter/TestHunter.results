@@ -775,8 +775,8 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-Heartrazor-29962"
  value: {
-  dps: 3640.60248
-  tps: 2604.16003
+  dps: 3624.05569
+  tps: 2589.60046
   dtps: 13.66446
  }
 }

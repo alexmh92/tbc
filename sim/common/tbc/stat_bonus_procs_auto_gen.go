@@ -7410,7 +7410,7 @@ func RegisterAllProcs() {
 	// https://www.wowhead.com/tbc/spell=35131
 	shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
 		Callback:           core.CallbackOnSpellHitDealt,
-		ProcMask:           core.ProcMaskMeleeMHAuto | core.ProcMaskMeleeOHAuto | core.ProcMaskMeleeMHSpecial | core.ProcMaskMeleeOHSpecial,
+		ProcMask:           core.ProcMaskUnknown,
 		Outcome:            core.OutcomeLanded,
 		RequireDamageDealt: true,
 	}, []shared.ItemVariant{
@@ -7421,7 +7421,7 @@ func RegisterAllProcs() {
 	// https://www.wowhead.com/tbc/spell=36041
 	shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
 		Callback:           core.CallbackOnSpellHitDealt,
-		ProcMask:           core.ProcMaskMeleeMHAuto | core.ProcMaskMeleeOHAuto | core.ProcMaskMeleeMHSpecial | core.ProcMaskMeleeOHSpecial,
+		ProcMask:           core.ProcMaskUnknown,
 		Outcome:            core.OutcomeLanded,
 		RequireDamageDealt: true,
 	}, []shared.ItemVariant{

@@ -1134,8 +1134,8 @@ dps_results: {
 dps_results: {
  key: "TestRogue-AllItems-TheBladefist-29348"
  value: {
-  dps: 1755.85421
-  tps: 1246.65649
+  dps: 1749.10288
+  tps: 1241.86304
  }
 }
 dps_results: {

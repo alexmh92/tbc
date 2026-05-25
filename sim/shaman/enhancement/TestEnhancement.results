@@ -1183,8 +1183,8 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-AllItems-TheBladefist-29348"
  value: {
-  dps: 1818.70878
-  tps: 1736.0926
+  dps: 1820.74971
+  tps: 1735.78483
  }
 }
 dps_results: {
