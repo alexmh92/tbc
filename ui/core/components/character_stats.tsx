@@ -362,7 +362,6 @@ export class CharacterStats extends Component {
 
 		if (this.meleeCritCapValueElem) {
 			const meleeCritCapInfo = player.getMeleeCritCapInfo();
-			console.log(meleeCritCapInfo);
 			const valueElem = (
 				<a href="javascript:void(0)" className="stat-value-link" attributes={{ role: 'button' }}>
 					{`${this.meleeCritCapDisplayString(player, finalStats)} `}
