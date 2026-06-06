@@ -13,7 +13,7 @@ import { Gear } from '../../proto_utils/gear';
 import { canEquipItem, getEligibleItemSlots, isSecondaryItemSlot } from '../../proto_utils/utils';
 import { RequestTypes } from '../../sim_signal_manager';
 import { TypedEvent } from '../../typed_event';
-import { getEnumValues, isExternal } from '../../utils';
+import { formatDurationSeconds, getEnumValues, isExternal } from '../../utils';
 import { isSpecDualWieldCapable } from '../../player_classes/capabilities';
 import SelectorModal from '../gear_picker/selector_modal';
 import { SimTab } from '../sim_tab';
@@ -78,6 +78,7 @@ export class BulkTab extends SimTab {
 	protected iterations = 0;
 	private combinationsCalcRequestVersion = 0;
 	private webSimWarningContainer: HTMLElement | null = null;
+	private cacheRestoreStartedAt: number | undefined;
 	protected isRunning: boolean = false;
 	protected isCancelling = false;
 	protected bulkSimAbortController: AbortController | null = null;
@@ -926,19 +927,59 @@ export class BulkTab extends SimTab {
 							total: completeTotal,
 						})}
 					/>
-					<div>{i18n.t('bulk_tab.progress.seconds_remaining', { seconds: Math.round(secondsRemaining) })}</div>
+					<div>{i18n.t('bulk_tab.progress.time_remaining', { time: formatDurationSeconds(secondsRemaining) })}</div>
 				</div>
 			),
 		});
 	}
 
-	private setCacheRestoreProgress(progress: BulkSimReforgeCacheProgress) {
+	private setCandidateGearProgress({
+		completed,
+		total,
+		title = i18n.t('bulk_tab.progress.building_candidate_gear_sets'),
+		stage = 'preparing',
+		startedAt,
+	}: {
+		completed?: number;
+		total?: number;
+		title?: string;
+		stage?: string;
+		startedAt?: number;
+	} = {}) {
+		const secondsRemaining =
+			startedAt !== undefined && completed !== undefined && total !== undefined && completed > 0
+				? ((new Date().getTime() - startedAt) / 1000 / completed) * Math.max(0, total - completed)
+				: undefined;
+
+		if (completed === undefined || total === undefined) {
+			this.progressTrackerModal.updateProgress({
+				stage,
+				title,
+				message: undefined,
+			});
+			return;
+		}
+
 		this.progressTrackerModal.updateProgress({
+			stage,
+			title,
+			current: completed,
+			total,
+			message:
+				secondsRemaining !== undefined ? (
+					<div>{i18n.t('bulk_tab.progress.time_remaining', { time: formatDurationSeconds(secondsRemaining) })}</div>
+				) : undefined,
+		});
+	}
+
+	private setCacheRestoreProgress(progress: BulkSimReforgeCacheProgress) {
+		this.cacheRestoreStartedAt ??= new Date().getTime();
+		this.setCandidateGearProgress({
+			completed: progress.processedCandidates ?? progress.current,
+			total: progress.totalCandidates ?? progress.total,
+			title: i18n.t('bulk_tab.progress.restoring_reforges_from_cache'),
 			stage: 'reforging',
-			title: i18n.t('bulk_tab.progress.reforging_rounds'),
-			current: progress.current,
-			total: progress.total,
-			message: progress.message,
+			startedAt: this.cacheRestoreStartedAt,
 		});
 	}
 
@@ -956,6 +997,7 @@ export class BulkTab extends SimTab {
 
 		this.isRunning = true;
 		this.isCancelling = false;
+		this.cacheRestoreStartedAt = undefined;
 		this.bulkSimAbortController = new AbortController();
 		this.bulkSimAbortPromise = null;
 		const abortSignal = this.bulkSimAbortController.signal;
@@ -979,6 +1021,7 @@ export class BulkTab extends SimTab {
 			await this.refreshCombinationsCount();
 
 			if (!useNativeBulkSim) {
+				this.setCandidateGearProgress();
 				const bulkCandidatesResult = await this.simUI.sim.getBulkCandidates(this.createBulkSettings());
 				if (bulkCandidatesResult.error) {
 					throw new Error(bulkCandidatesResult.error.message || 'Failed to build bulk candidates');
