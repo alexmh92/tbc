@@ -55,7 +55,7 @@ import { Raid } from './raid.js';
 import { runConcurrentSim, runConcurrentStatWeights } from './sim_concurrent';
 import { RequestTypes, SimSignalManager } from './sim_signal_manager';
 import { EventID, TypedEvent } from './typed_event.js';
-import { distinct, getEnumValues, noop } from './utils.js';
+import { distinct, getEnumValues, isExternal, noop } from './utils.js';
 import { runConcurrentBulkSim } from './wasm';
 import { makeBulkGearDatabase } from './wasm/bulk_sim';
 import {
@@ -184,6 +184,7 @@ export class Sim {
 	readonly simResultEmitter = new TypedEvent<SimResult>();
 
 	private readonly _initPromise: Promise<any>;
+	isNative: boolean | undefined = undefined;
 	private lastUsedRngSeed = 0;
 
 	// These callbacks are needed so we can apply BuffBot modifications automatically before sending requests.
@@ -216,8 +217,9 @@ export class Sim {
 
 		this.signalManager = new SimSignalManager();
 
-		this._initPromise = Database.get().then(db => {
+		this._initPromise = Database.get().then(async db => {
 			this.db_ = db;
+			await this.resolveIsNative();
 		});
 
 		this.raid = new Raid(this);
@@ -247,6 +249,14 @@ export class Sim {
 
 	waitForInit(): Promise<void> {
 		return this._initPromise;
+	}
+
+	private async resolveIsNative() {
+		try {
+			this.isNative = !(await this.isWasm());
+		} catch {
+			this.isNative = isExternal();
+		}
 	}
 
 	/**
@@ -549,6 +559,7 @@ export class Sim {
 				...ReforgeOptimizer.makeReforgeConfigRequestFields(config, this.db),
 				debug: config.debug ?? false,
 			});
+
 			const result = await this.workerPool.reforgeOptimizeAsync(request, signals);
 			if (result.error) {
 				throw new SimError(result.error.message);
