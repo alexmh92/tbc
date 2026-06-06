@@ -23,6 +23,10 @@ var SpellEffectsById = map[int32]*proto.SpellEffect{}
 
 var mutex = &sync.Mutex{}
 
+func AddToDatabase(newDB *proto.SimDatabase) {
+	addToDatabase(newDB)
+}
+
 func addToDatabase(newDB *proto.SimDatabase) {
 	// create mutex lock here and lock it
 	// defer unlock it
@@ -52,6 +56,7 @@ func addToDatabase(newDB *proto.SimDatabase) {
 			GemsByID[v.Id] = GemFromProto(v)
 		}
 	}
+
 	for _, v := range newDB.ItemEffectRandPropPoints {
 		if _, ok := ItemEffectRandPropPointsByIlvl[v.Ilvl]; !ok {
 			ItemEffectRandPropPointsByIlvl[v.Ilvl] = ItemEffectRandPropPointsFromProto(v)

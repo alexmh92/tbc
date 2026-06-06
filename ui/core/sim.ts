@@ -2,16 +2,30 @@ import { getLang } from '../i18n/locale_service';
 import { hasTouch } from '../shared/bootstrap_overrides';
 import { SimRequest } from '../worker/types';
 import { CURRENT_PHASE, LOCAL_STORAGE_PREFIX } from './constants/other';
+import { ReforgeOptimizer } from './components/suggest_reforges_action';
 import { Encounter } from './encounter';
 import { Player, UnitMetadata } from './player';
 import {
 	ComputeStatsRequest,
+	BulkCandidatesRequest,
+	BulkCandidatesResult,
+	BulkGearCandidate,
+	BulkCombinationCountRequest,
+	BulkCombinationCountResult,
+	BulkSimRequest,
+	BulkSimResult,
+	BulkSimStage,
+	BulkSettings,
 	ErrorOutcome,
 	ErrorOutcomeType,
 	PlayerStats,
+	ProgressMetrics,
 	Raid as RaidProto,
 	RaidSimRequest,
 	RaidSimResult,
+	ReforgeOptimizeRequest,
+	ReforgeOptimizeResult,
+	ReforgeSettings,
 	SimOptions,
 	SimType,
 	StatWeightsRequest,
@@ -20,24 +34,36 @@ import {
 import {
 	ArmorType,
 	Faction,
+	ItemSpec,
 	Profession,
 	PseudoStat,
 	RangedWeaponType,
+	EquipmentSpec,
 	Stat,
 	UnitReference,
 	UnitReference_Type as UnitType,
 	WeaponType,
 } from './proto/common.js';
-import { DatabaseFilters, RaidFilterOption, SimSettings as SimSettingsProto, SourceFilterOption } from './proto/ui.js';
+import { UIItem, DatabaseFilters, RaidFilterOption, SimSettings as SimSettingsProto, SourceFilterOption } from './proto/ui.js';
+import { ItemEffectRandPropPoints, SimGem, SimItem, SimDatabase } from './proto/db.js';
 import { Database } from './proto_utils/database.js';
 import { Gear } from './proto_utils/gear';
 import { SimResult } from './proto_utils/sim_result.js';
+import { StatCap, Stats } from './proto_utils/stats';
 import { extendPlayerProtoWithMissingEffects } from './proto_utils/utils';
 import { Raid } from './raid.js';
 import { runConcurrentSim, runConcurrentStatWeights } from './sim_concurrent';
 import { RequestTypes, SimSignalManager } from './sim_signal_manager';
 import { EventID, TypedEvent } from './typed_event.js';
-import { getEnumValues, noop } from './utils.js';
+import { distinct, getEnumValues, noop } from './utils.js';
+import { runConcurrentBulkSim } from './wasm';
+import { makeBulkGearDatabase } from './wasm/bulk_sim';
+import {
+	getBulkSimReforgeCacheData,
+	type BulkSimReforgeCacheProgress,
+	throwIfAborted,
+	writeBulkSimReforgeCacheResults,
+} from './components/individual_sim_ui/bulk/utils';
 import { generateRequestId, WorkerPool, WorkerProgressCallback } from './worker_pool.js';
 
 export type RaidSimData = {
@@ -59,6 +85,49 @@ export type RunSimOptions = {
 	silent?: boolean; // If true, don't emit the simResultEmitter event.
 };
 
+export type ReforgeOptimizeConfig = {
+	gear: Gear;
+	preCapEPWeights: Stats;
+	undershootCaps: Stats;
+	settings: ReforgeSettings;
+	softCaps: StatCap[];
+	debug?: boolean;
+};
+
+const makeBulkItemDatabaseFromSpecs = (db: Database, baselineGear: Gear, itemSpecs: readonly ItemSpec[]): SimDatabase => {
+	const gearSets = [baselineGear];
+	const selectedItems = itemSpecs
+		.map(itemSpec => (itemSpec ? db.lookupItemSpec(itemSpec) : null))
+		.filter((item): item is NonNullable<typeof item> => item != null);
+	const simDatabase = makeBulkGearDatabase(db, gearSets);
+
+	for (const selectedItem of selectedItems) {
+		simDatabase.items.push(SimItem.fromJson(UIItem.toJson(selectedItem.item), { ignoreUnknownFields: true }));
+		const scalingIlvls = new Set<number>([selectedItem.ilvl]);
+		Object.values(selectedItem.item.scalingOptions ?? {}).forEach(scalingOption => {
+			if (scalingOption?.ilvl) {
+				scalingIlvls.add(scalingOption.ilvl);
+			}
+		});
+		scalingIlvls.forEach(ilvl => {
+			const ieRpp = db.getItemEffectRandPropPoints(ilvl);
+			if (ieRpp) {
+				simDatabase.itemEffectRandPropPoints.push(ItemEffectRandPropPoints.create(ieRpp));
+			}
+		});
+		if (selectedItem.randomSuffix) {
+			simDatabase.randomSuffixes.push(selectedItem.randomSuffix);
+		}
+	}
+
+	return SimDatabase.create({
+		items: distinct(simDatabase.items, (a, b) => a.id == b.id),
+		randomSuffixes: distinct(simDatabase.randomSuffixes, (a, b) => a.id == b.id),
+		itemEffectRandPropPoints: distinct(simDatabase.itemEffectRandPropPoints, (a, b) => a.ilvl == b.ilvl),
+		enchants: distinct(simDatabase.enchants, (a, b) => a.effectId == b.effectId),
+		gems: distinct(simDatabase.gems, (a, b) => a.id == b.id),
+	});
+};
 const WASM_CONCURRENCY_STORAGE_KEY = `${LOCAL_STORAGE_PREFIX}_wasmconcurrency`;
 
 // Core Sim module which deals only with api types, no UI-related stuff.
@@ -259,6 +328,241 @@ export class Sim {
 				randomSeed: BigInt(this.nextRngSeed()),
 				debugFirstIteration: true,
 			}),
+		});
+	}
+
+	private makeBulkBaseRequest(bulkSettings: BulkSettings): RaidSimRequest {
+		const request = this.makeRaidSimRequest(false);
+		const player = request.raid!.parties[0].players[0];
+		const baselineGear = this.db.lookupEquipmentSpec(player.equipment!);
+
+		const bulkItemDatabase = makeBulkItemDatabaseFromSpecs(this.db, baselineGear, bulkSettings.items);
+		player.database = player.database ? Database.mergeSimDatabases(player.database, bulkItemDatabase) : bulkItemDatabase;
+		player.equipment = baselineGear.asSpec();
+		request.raid!.parties[0].players[0] = player;
+
+		request.simOptions!.iterations = bulkSettings.iterationsPerCombo || this.getIterations();
+
+		return request;
+	}
+
+	async getBulkCombinationCount(bulkSettings: BulkSettings): Promise<BulkCombinationCountResult> {
+		if (this.raid.isEmpty()) {
+			throw new Error('Raid is empty! Try adding some players first.');
+		} else if (this.encounter.targets.length < 1) {
+			throw new Error('Encounter has no targets! Try adding some targets first.');
+		}
+
+		await this.waitForInit();
+		const baseRequest = this.makeBulkBaseRequest(bulkSettings);
+		const request = BulkCombinationCountRequest.create({
+			baseRequest,
+			bulkSettings,
+		});
+		return await this.workerPool.bulkCombinationCount(request);
+	}
+
+	async getBulkCandidates(bulkSettings: BulkSettings): Promise<BulkCandidatesResult> {
+		if (this.raid.isEmpty()) {
+			throw new Error('Raid is empty! Try adding some players first.');
+		} else if (this.encounter.targets.length < 1) {
+			throw new Error('Encounter has no targets! Try adding some targets first.');
+		}
+
+		await this.waitForInit();
+		const baseRequest = this.makeBulkBaseRequest(bulkSettings);
+		const request = BulkCandidatesRequest.create({
+			baseRequest,
+			bulkSettings,
+		});
+		return await this.workerPool.bulkCandidates(request);
+	}
+
+	async runBulkSim(
+		gearSets: Gear[],
+		onProgress: WorkerProgressCallback,
+		reforgeConfig?: ReforgeOptimizeConfig,
+		bulkSettings?: BulkSettings,
+		onCacheRestoreProgress?: (progress: BulkSimReforgeCacheProgress) => void,
+		abortSignal?: AbortSignal,
+	): Promise<BulkSimResult | ErrorOutcome> {
+		if (this.raid.isEmpty()) {
+			throw new Error('Raid is empty! Try adding some players first.');
+		} else if (this.encounter.targets.length < 1) {
+			throw new Error('Encounter has no targets! Try adding some targets first.');
+		}
+
+		const signals = this.signalManager.registerRunning(RequestTypes.BulkSim);
+		try {
+			await this.waitForInit();
+
+			const requestId = generateRequestId(SimRequest.bulkSimAsync);
+			const baseRequest = this.makeRaidSimRequest(false);
+			baseRequest.requestId = requestId;
+			baseRequest.simOptions!.debugFirstIteration = false;
+			baseRequest.simOptions!.debug = false;
+
+			const player = baseRequest.raid!.parties[0].players[0];
+			const isEnchanter = [player.profession1, player.profession2].includes(Profession.Enchanting);
+			const prepareGear = (gear: Gear) => {
+				// Remove Ring Enchants if not enchanter
+				if (!isEnchanter) {
+					gear = gear.withoutEnchanting();
+				}
+				return gear;
+			};
+
+			const baselineGear = prepareGear(this.raid.getActivePlayers()[0].getGear());
+			const bulkReforgeRequest = reforgeConfig ? this.makeBulkSimReforgeRequest(reforgeConfig) : undefined;
+			const useWasmConcurrency = await this.shouldUseWasmConcurrency();
+			const backendBuildCandidates = !useWasmConcurrency && !!bulkSettings;
+			const preparedGearSets = backendBuildCandidates ? [] : gearSets.map(prepareGear);
+			const bulkReforgeCacheData =
+				bulkReforgeRequest && !backendBuildCandidates
+					? await getBulkSimReforgeCacheData({
+							player: this.raid.getActivePlayers()[0],
+							gearSets: preparedGearSets,
+							db: this.db,
+							reforgeRequest: bulkReforgeRequest,
+							raidBuffs: this.raid.getBuffs(),
+							partyBuffs: this.raid.getActivePlayers()[0].getParty()?.getBuffs(),
+							debuffs: this.raid.getDebuffs(),
+							onProgress: onCacheRestoreProgress,
+							signal: abortSignal,
+						})
+					: undefined;
+			throwIfAborted(abortSignal);
+			const cachedOptimizedGearSets = bulkReforgeCacheData?.cachedOptimizedGearSets ?? [];
+			const bulkGearDatabase =
+				backendBuildCandidates && bulkSettings
+					? makeBulkItemDatabaseFromSpecs(this.db, baselineGear, bulkSettings.items)
+					: makeBulkGearDatabase(this.db, [baselineGear, ...preparedGearSets, ...cachedOptimizedGearSets]);
+			if (bulkReforgeRequest) {
+				bulkGearDatabase.gems = distinct(
+					bulkGearDatabase.gems.concat(
+						bulkReforgeRequest.gemOptions.map(gem =>
+							SimGem.create({
+								id: gem.id,
+								name: gem.name,
+								color: gem.color,
+								stats: gem.stats.slice(),
+							}),
+						),
+					),
+					(a, b) => a.id == b.id,
+				);
+			}
+			player.database = player.database ? Database.mergeSimDatabases(player.database, bulkGearDatabase) : bulkGearDatabase;
+			player.equipment = baselineGear.asSpec();
+			baseRequest.raid!.parties[0].players[0] = player;
+			throwIfAborted(abortSignal);
+
+			const candidates = backendBuildCandidates
+				? []
+				: (bulkReforgeCacheData?.candidates ?? preparedGearSets.map((gear, index) => ({ index, gear: gear.asSpec() })));
+
+			const request = BulkSimRequest.create({
+				requestId,
+				baseRequest,
+				candidates,
+				optimizedCandidates: backendBuildCandidates ? [] : (bulkReforgeCacheData?.optimizedCandidates ?? []),
+				topResults: 5,
+				highStageIterations: this.getIterations(),
+				reforgeRequest: bulkReforgeRequest,
+				bulkSettings,
+			});
+
+			let result: BulkSimResult;
+			if (useWasmConcurrency) {
+				const cacheWrites: Promise<void>[] = [];
+				const onReforgeCandidateOptimized = (candidate: BulkGearCandidate, optimizedGear: EquipmentSpec) => {
+					const cacheKey = bulkReforgeCacheData?.cacheKeysByCandidateIndex.get(candidate.index);
+					if (cacheKey) cacheWrites.push(bulkReforgeCacheData!.cache.setGear(cacheKey, optimizedGear));
+				};
+				result = await runConcurrentBulkSim(request, this.workerPool, onProgress, signals, onReforgeCandidateOptimized);
+				await Promise.all(cacheWrites);
+			} else {
+				const cacheWrites: Promise<void>[] = [];
+				const wrappedOnProgress: WorkerProgressCallback = (progress: ProgressMetrics) => {
+					onProgress(progress);
+					if (progress.bulkStage === BulkSimStage.BulkSimStageReforge && progress.optimizedCandidates && bulkReforgeCacheData) {
+						const cacheEntries = progress.optimizedCandidates.flatMap(candidate => {
+							const cacheKey = bulkReforgeCacheData.cacheKeysByCandidateIndex.get(candidate.index);
+							if (!cacheKey || !candidate.gear) return [];
+							return [{ key: cacheKey, optimizedGear: candidate.gear }];
+						});
+						if (cacheEntries.length) {
+							cacheWrites.push(bulkReforgeCacheData.cache.setGearMany(cacheEntries));
+						}
+					}
+				};
+				result = await this.workerPool.bulkSimAsync(request, wrappedOnProgress, signals);
+				await Promise.all(cacheWrites);
+				if (bulkReforgeCacheData && result.optimizedCandidates) {
+					await writeBulkSimReforgeCacheResults(result.optimizedCandidates, bulkReforgeCacheData);
+				}
+			}
+
+			if (result.error) {
+				if (result.error.type != ErrorOutcomeType.ErrorOutcomeError) return result.error;
+				throw new SimError(result.error.message);
+			}
+
+			return result;
+		} catch (error) {
+			if (error instanceof SimError) throw error;
+			console.error(error);
+			throw new Error('Something went wrong running your bulk sim. Reload the page and try again.');
+		} finally {
+			this.signalManager.unregisterRunning(signals);
+		}
+	}
+
+	async reforgeOptimize(config: ReforgeOptimizeConfig): Promise<ReforgeOptimizeResult> {
+		const signals = this.signalManager.registerRunning(RequestTypes.ReforgeOptimize);
+		try {
+			await this.waitForInit();
+
+			const gemOptions = ReforgeOptimizer.getReforgeGemOptions(this.db);
+			const raid = this.getModifiedRaidProto();
+			const player = raid.parties[0].players[0];
+			player.database = config.gear.toDatabase(this.db);
+			player.database.gems = distinct(
+				player.database.gems.concat(
+					gemOptions.map(gem =>
+						SimGem.create({
+							id: gem.id,
+							name: gem.name,
+							color: gem.color,
+							stats: gem.stats.slice(),
+						}),
+					),
+				),
+				(a, b) => a.id == b.id,
+			);
+			player.equipment = config.gear.asSpec();
+			raid.parties[0].players[0] = player;
+
+			const request = ReforgeOptimizeRequest.create({
+				requestId: generateRequestId(SimRequest.reforgeOptimizeAsync),
+				raid,
+				...ReforgeOptimizer.makeReforgeConfigRequestFields(config, this.db),
+				debug: config.debug ?? false,
+			});
+			const result = await this.workerPool.reforgeOptimizeAsync(request, signals);
+			if (result.error) {
+				throw new SimError(result.error.message);
+			}
+			return result;
+		} finally {
+			this.signalManager.unregisterRunning(signals);
+		}
+	}
+
+	private makeBulkSimReforgeRequest(config: ReforgeOptimizeConfig): ReforgeOptimizeRequest {
+		return ReforgeOptimizeRequest.create({
+			requestId: generateRequestId(SimRequest.reforgeOptimizeAsync),
+			...ReforgeOptimizer.makeReforgeConfigRequestFields(config, this.db),
 		});
 	}
 

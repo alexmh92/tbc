@@ -446,10 +446,6 @@
 		},
 		"other": {
 			"title": "Other",
-			"challenge_mode": {
-				"label": "Challenge Mode",
-				"tooltip": "Enables Challenge Mode"
-			},
 			"input_delay": {
 				"label": "Input Delay",
 				"tooltip": "Player input delay, in milliseconds. Specifies the maximum delay on actions that cannot be spell queued, such as spell casts that are waiting on resource gains or waiting for a cooldown to expire. Also used with certain APL values (such as 'Aura Is Active With Reaction Time'). Roughly models the sum of reaction time + server latency."
@@ -882,10 +878,9 @@
 			"combinations_count": "{{count}} Combinations",
 			"combination_singular": "1 Combination",
 			"iterations": "Iterations",
-			"fallback_gems": "Fallback Gems",
-			"inherit_upgrades": {
-				"label": "Inherit Upgrades",
-				"tooltip": "When enabled, items will inherit upgrades from the equipped item. Otherwise, items will be simmed without any upgrades."
+			"use_legacy_bulk_sim": {
+				"label": "Use legacy single-stage sim",
+				"tooltip": "By default, Bulk Sim runs large batches in multiple stages: a low-iteration pass to find likely contenders, a medium-iteration refinement pass, and a final high-iteration pass for the best remaining gear sets. Enable this only to force the legacy high-stage-only behavior."
 			},
 			"freeze_ring": {
 				"label": "Freeze ring slot",
@@ -907,7 +902,7 @@
 		},
 		"progress": {
 			"total_combinations": "{{count}} total combinations.",
-			"reforging_rounds": "Running reforges",
+			"reforging_rounds": "Running regems",
 			"baseline_round": "Running baseline round",
 			"refining_rounds": "Running refining rounds",
 			"iterations_complete": "{{completed}} / {{total}}<br />iterations complete",
@@ -931,9 +926,6 @@
 			"equip_button": "Equip",
 			"gear_equipped": "Batch gear equipped!",
 			"current_gear": "Current Gear"
-		},
-		"gem_selector": {
-			"title": "Choose fallback Gem"
 		},
 		"import_modal": {
 			"title": "Bag Item Import",

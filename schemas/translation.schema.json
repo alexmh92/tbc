@@ -1830,22 +1830,6 @@
             "title": {
               "type": "string"
             },
-            "challenge_mode": {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string"
-                },
-                "tooltip": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "label",
-                "tooltip"
-              ]
-            },
             "input_delay": {
               "type": "object",
               "properties": {
@@ -2595,7 +2579,6 @@
           "additionalProperties": false,
           "required": [
             "title",
-            "challenge_mode",
             "input_delay",
             "channel_clip_delay",
             "in_front_of_target",
@@ -3668,25 +3651,6 @@
             "iterations": {
               "type": "string"
             },
-            "fallback_gems": {
-              "type": "string"
-            },
-            "inherit_upgrades": {
-              "type": "object",
-              "properties": {
-                "label": {
-                  "type": "string"
-                },
-                "tooltip": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "label",
-                "tooltip"
-              ]
-            },
             "freeze_ring": {
               "type": "object",
               "properties": {
@@ -3761,8 +3725,6 @@
             "combinations_count",
             "combination_singular",
             "iterations",
-            "fallback_gems",
-            "inherit_upgrades",
             "freeze_ring",
             "freeze_trinket",
             "freeze_weapon",
@@ -3877,18 +3839,6 @@
             "current_gear"
           ]
         },
-        "gem_selector": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "title"
-          ]
-        },
         "import_modal": {
           "type": "object",
           "properties": {
@@ -3924,7 +3874,6 @@
         "warning",
         "picker",
         "results",
-        "gem_selector",
         "import_modal"
       ]
     },
