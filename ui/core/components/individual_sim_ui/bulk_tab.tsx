@@ -38,14 +38,18 @@ import { translateBulkSlotName, translateWeaponType } from '../../../i18n/locali
 import { BooleanPicker } from '../pickers/boolean_picker';
 import { ProgressTrackerModal } from '../progress_tracker_modal';
 import {
+	BULK_OPTIMISATION_MIN_COMBINATIONS,
 	BulkSimProgressConfig,
 	LOCAL_COMBINATIONS_LIMIT,
 	LOCAL_ITERATIONS_LIMIT,
 	TopGearResult,
 	WEB_COMBINATIONS_LIMIT,
-	WEB_DEFAULT_ITERATIONS,
 	WEB_ITERATIONS_LIMIT,
 } from './bulk/types';
+
+const BULK_OPTIMISATION_AGGRESSIVE_CULLING_COEFFICIENT = 1.35;
+const BULK_OPTIMISATION_CONSERVATIVE_ERROR_THRESHOLD = 2.5;
+const BULK_CANDIDATE_GEAR_BUILD_CHUNK_SIZE = 250;
 
 export class BulkTab extends SimTab {
 	readonly simUI: IndividualSimUI<any>;
@@ -87,7 +91,7 @@ export class BulkTab extends SimTab {
 		[ItemSlot.ItemSlotMainHand, []],
 		[ItemSlot.ItemSlotOffHand, []],
 	]);
-	useLegacyBulkSim = false;
+	useLegacyBulkSim: boolean = false;
 	requiredSetBonuses: BulkRequiredSetBonus[] = [];
 
 	protected topGearResults: TopGearResult[] | null = null;
@@ -294,8 +298,6 @@ export class BulkTab extends SimTab {
 	}
 
 	private getDefaultIterationsCount(): number {
-		if (isExternal()) return WEB_DEFAULT_ITERATIONS;
-
 		return this.simUI.sim.getIterations();
 	}
 

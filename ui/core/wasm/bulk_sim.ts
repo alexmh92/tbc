@@ -28,12 +28,6 @@ import { optimizeReforgeGear, reforgeGearKey } from './reforge_optimizer';
 import { runConcurrentSim } from './sim';
 
 const BULK_SIM_DEFAULT_TOP_RESULTS = 5;
-const BULK_SIM_MIN_COMBINATIONS = 20;
-const BULK_SIM_CULLING_COEFFICIENT = 1.35;
-const BULK_SIM_COMBINATION_LOG_MIN = 10;
-const BULK_SIM_MAX_ADAPTIVE_PASSES = 2;
-const BULK_SIM_ADAPTIVE_MAX_ITERATION_MULTIPLIER = 4;
-const BULK_SIM_SURVIVOR_SOFT_CAP_MULTIPLIER = 2;
 
 export const makeBulkGearDatabase = (db: Database, gearSets: Gear[]): SimDatabase => {
 	const items = new Map<number, Item>();
@@ -126,6 +120,13 @@ type BulkSimReforgeCandidateTask = {
 	position: number;
 };
 
+const BULK_SIM_MIN_COMBINATIONS = 20;
+const BULK_SIM_CULLING_COEFFICIENT = 1.35;
+const BULK_SIM_COMBINATION_LOG_MIN = 10;
+const BULK_SIM_MAX_ADAPTIVE_PASSES = 2;
+const BULK_SIM_ADAPTIVE_MAX_ITERATION_MULTIPLIER = 4;
+const BULK_SIM_SURVIVOR_SOFT_CAP_MULTIPLIER = 2;
+
 const bulkSimStageConfigs: ConcurrentBulkSimStageConfig[] = [
 	{
 		stage: BulkSimStage.BulkSimStageLow,
@@ -149,66 +150,6 @@ const bulkSimStageConfigs: ConcurrentBulkSimStageConfig[] = [
 		targetErrorPct: 0.05,
 	},
 ];
-
-const makeAndSendBulkSimError = (
-	err: string | ErrorOutcome,
-	onProgress: WorkerProgressCallback,
-	optimizedCandidates: BulkGearCandidate[] = [],
-): BulkSimResult => {
-	const errRes = BulkSimResult.create();
-	errRes.optimizedCandidates = optimizedCandidates.map(candidate => BulkGearCandidate.clone(candidate));
-	if (typeof err === 'string') {
-		console.error(err);
-		errRes.error = ErrorOutcome.create({ message: err });
-	} else {
-		if (err.message) console.error(err.message);
-		errRes.error = err;
-	}
-	onProgress(ProgressMetrics.create({ bulkStage: BulkSimStage.BulkSimStageError, finalBulkSimResult: errRes }));
-	return errRes;
-};
-
-const validateBulkSimRequest = (request: BulkSimRequest): string => {
-	if (!request) return '[Bulk sim] Request is empty';
-	if (!request.baseRequest) return '[Bulk sim] Base request is empty';
-	if (!request.baseRequest.raid) return '[Bulk sim] Raid is empty';
-	if (!request.baseRequest.simOptions) return '[Bulk sim] Sim options are empty';
-	const player = request.baseRequest.raid.parties[0]?.players[0];
-	if (!player || !player.class) return '[Bulk Sim] First player is empty';
-	if (!player.equipment) return '[Bulk sim] Baseline gear is empty';
-	return '';
-};
-
-const getBulkSimBaselineGear = (request: BulkSimRequest) => request.baseRequest!.raid!.parties[0].players[0].equipment!;
-
-const shouldUseLegacyBulkSim = (request: BulkSimRequest, candidateCount: number): boolean => {
-	const settings = request.bulkSettings;
-	if (settings?.useLegacyBulkSim) {
-		return true;
-	}
-	if (candidateCount < BULK_SIM_MIN_COMBINATIONS) {
-		return true;
-	}
-
-	const highStageIterations = request.highStageIterations;
-	let remainingCandidates = candidateCount;
-	let estimatedOptimisationIterationsUpperBound = 0;
-
-	for (const config of bulkSimStageConfigs) {
-		if (config.stage === BulkSimStage.BulkSimStageHigh) {
-			break;
-		}
-		if (!shouldRunBulkSimStage(config, remainingCandidates)) {
-			continue;
-		}
-
-		estimatedOptimisationIterationsUpperBound += getBulkSimStageMinIterations(request, config) * (remainingCandidates + 1);
-		remainingCandidates = Math.min(remainingCandidates, config.maxSurvivors ?? remainingCandidates);
-	}
-
-	estimatedOptimisationIterationsUpperBound += getBulkSimStageMinIterations(request, bulkSimStageConfigs[bulkSimStageConfigs.length - 1]!) * (remainingCandidates + 1);
-	return estimatedOptimisationIterationsUpperBound >= highStageIterations * candidateCount;
-};
 
 const shouldRunBulkSimStage = (config: ConcurrentBulkSimStageConfig, candidateCount: number): boolean =>
 	config.maxSurvivors === undefined ||
@@ -302,6 +243,113 @@ const emitBulkSimStageProgress = (
 			dps,
 		}),
 	);
+};
+
+const bulkSimDpsError = (metrics: DistributionMetrics | undefined, iterations: number): number => {
+	if (!metrics || iterations <= 0) return 0;
+	return metrics.stdev / Math.sqrt(iterations);
+};
+
+const bulkSimCombinationErrorMultiplier = (candidateCount: number): number =>
+	Math.sqrt(Math.max(1, Math.log10(Math.max(candidateCount, BULK_SIM_COMBINATION_LOG_MIN))));
+
+const bulkSimSurvivorIntervalMultiplier = (candidateCount: number, cullingCoefficient: number): number =>
+	cullingCoefficient * bulkSimCombinationErrorMultiplier(candidateCount);
+
+const bulkSimObservedErrorPct = (metrics: DistributionMetrics | undefined, iterations: number, candidateCount: number): number => {
+	if (!metrics || metrics.avg <= 0 || iterations <= 0) return 0;
+	return (bulkSimDpsError(metrics, iterations) * bulkSimCombinationErrorMultiplier(candidateCount) * 100) / metrics.avg;
+};
+
+const bulkSimObservedStageErrorPct = (
+	baseline: ConcurrentBulkSimCandidateResult | undefined,
+	results: ConcurrentBulkSimCandidateResult[],
+	iterations: number,
+	candidateCount: number,
+): number => {
+	let observedErrorPct = bulkSimObservedErrorPct(baseline?.dpsMetrics, iterations, candidateCount);
+	for (const result of results) {
+		observedErrorPct = Math.max(observedErrorPct, bulkSimObservedErrorPct(result.dpsMetrics, iterations, candidateCount));
+	}
+	return observedErrorPct;
+};
+
+const getBulkSimStageTargetIterations = (
+	targetErrorPct: number,
+	baseline: ConcurrentBulkSimCandidateResult | undefined,
+	results: ConcurrentBulkSimCandidateResult[],
+	candidateCount: number,
+): number => {
+	let targetIterations = getBulkSimTargetIterations(targetErrorPct, baseline?.dpsMetrics, candidateCount);
+	for (const result of results) {
+		targetIterations = Math.max(targetIterations, getBulkSimTargetIterations(targetErrorPct, result.dpsMetrics, candidateCount));
+	}
+	return targetIterations;
+};
+
+const hasBulkSimStageError = (baseline: ConcurrentBulkSimCandidateResult | undefined, results: ConcurrentBulkSimCandidateResult[]): boolean => {
+	return !!baseline?.error || results.some(result => !!result.error);
+};
+
+const makeAndSendBulkSimError = (
+	err: string | ErrorOutcome,
+	onProgress: WorkerProgressCallback,
+	optimizedCandidates: BulkGearCandidate[] = [],
+): BulkSimResult => {
+	const errRes = BulkSimResult.create();
+	errRes.optimizedCandidates = optimizedCandidates.map(candidate => BulkGearCandidate.clone(candidate));
+	if (typeof err === 'string') {
+		console.error(err);
+		errRes.error = ErrorOutcome.create({ message: err });
+	} else {
+		if (err.message) console.error(err.message);
+		errRes.error = err;
+	}
+	onProgress(ProgressMetrics.create({ bulkStage: BulkSimStage.BulkSimStageError, finalBulkSimResult: errRes }));
+	return errRes;
+};
+
+const validateBulkSimRequest = (request: BulkSimRequest): string => {
+	if (!request) return '[Bulk sim] Request is empty';
+	if (!request.baseRequest) return '[Bulk sim] Base request is empty';
+	if (!request.baseRequest.raid) return '[Bulk sim] Raid is empty';
+	if (!request.baseRequest.simOptions) return '[Bulk sim] Sim options are empty';
+	const player = request.baseRequest.raid.parties[0]?.players[0];
+	if (!player || !player.class) return '[Bulk Sim] First player is empty';
+	if (!player.equipment) return '[Bulk sim] Baseline gear is empty';
+	return '';
+};
+
+const getBulkSimBaselineGear = (request: BulkSimRequest) => request.baseRequest!.raid!.parties[0].players[0].equipment!;
+
+const shouldUseLegacyBulkSim = (request: BulkSimRequest, candidateCount: number): boolean => {
+	const settings = request.bulkSettings;
+	if (settings?.useLegacyBulkSim) {
+		return true;
+	}
+	if (candidateCount < BULK_SIM_MIN_COMBINATIONS) {
+		return true;
+	}
+
+	const highStageIterations = request.highStageIterations;
+	let remainingCandidates = candidateCount;
+	let estimatedOptimisationIterationsUpperBound = 0;
+
+	for (const config of bulkSimStageConfigs) {
+		if (config.stage === BulkSimStage.BulkSimStageHigh) {
+			break;
+		}
+		if (!shouldRunBulkSimStage(config, remainingCandidates)) {
+			continue;
+		}
+
+		estimatedOptimisationIterationsUpperBound += getBulkSimStageMinIterations(request, config) * (remainingCandidates + 1);
+		remainingCandidates = Math.min(remainingCandidates, config.maxSurvivors ?? remainingCandidates);
+	}
+
+	estimatedOptimisationIterationsUpperBound +=
+		getBulkSimStageMinIterations(request, bulkSimStageConfigs[bulkSimStageConfigs.length - 1]!) * (remainingCandidates + 1);
+	return estimatedOptimisationIterationsUpperBound >= highStageIterations * candidateCount;
 };
 
 const optimizeReforgeCandidates = async (
@@ -628,52 +676,6 @@ const runBulkSimCandidateBatchOnWorkers = async (
 	candidates.forEach((candidate, idx) => candidateQueue.push({ candidate, idx }));
 	await Promise.race([candidateQueue.drain(), queueErrorPromise]);
 	return results.filter((result): result is ConcurrentBulkSimCandidateResult => !!result);
-};
-
-const bulkSimDpsError = (metrics: DistributionMetrics | undefined, iterations: number): number => {
-	if (!metrics || iterations <= 0) return 0;
-	return metrics.stdev / Math.sqrt(iterations);
-};
-
-const bulkSimCombinationErrorMultiplier = (candidateCount: number): number =>
-	Math.sqrt(Math.max(1, Math.log10(Math.max(candidateCount, BULK_SIM_COMBINATION_LOG_MIN))));
-
-const bulkSimSurvivorIntervalMultiplier = (candidateCount: number, cullingCoefficient: number): number =>
-	cullingCoefficient * bulkSimCombinationErrorMultiplier(candidateCount);
-
-const bulkSimObservedErrorPct = (metrics: DistributionMetrics | undefined, iterations: number, candidateCount: number): number => {
-	if (!metrics || metrics.avg <= 0 || iterations <= 0) return 0;
-	return (bulkSimDpsError(metrics, iterations) * bulkSimCombinationErrorMultiplier(candidateCount) * 100) / metrics.avg;
-};
-
-const bulkSimObservedStageErrorPct = (
-	baseline: ConcurrentBulkSimCandidateResult | undefined,
-	results: ConcurrentBulkSimCandidateResult[],
-	iterations: number,
-	candidateCount: number,
-): number => {
-	let observedErrorPct = bulkSimObservedErrorPct(baseline?.dpsMetrics, iterations, candidateCount);
-	for (const result of results) {
-		observedErrorPct = Math.max(observedErrorPct, bulkSimObservedErrorPct(result.dpsMetrics, iterations, candidateCount));
-	}
-	return observedErrorPct;
-};
-
-const getBulkSimStageTargetIterations = (
-	targetErrorPct: number,
-	baseline: ConcurrentBulkSimCandidateResult | undefined,
-	results: ConcurrentBulkSimCandidateResult[],
-	candidateCount: number,
-): number => {
-	let targetIterations = getBulkSimTargetIterations(targetErrorPct, baseline?.dpsMetrics, candidateCount);
-	for (const result of results) {
-		targetIterations = Math.max(targetIterations, getBulkSimTargetIterations(targetErrorPct, result.dpsMetrics, candidateCount));
-	}
-	return targetIterations;
-};
-
-const hasBulkSimStageError = (baseline: ConcurrentBulkSimCandidateResult | undefined, results: ConcurrentBulkSimCandidateResult[]): boolean => {
-	return !!baseline?.error || results.some(result => !!result.error);
 };
 
 const adaptConcurrentBulkSimStageIterations = async (
