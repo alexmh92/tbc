@@ -50,12 +50,12 @@ import { Database } from './proto_utils/database.js';
 import { Gear } from './proto_utils/gear';
 import { SimResult } from './proto_utils/sim_result.js';
 import { StatCap, Stats } from './proto_utils/stats';
-import { extendPlayerProtoWithMissingEffects } from './proto_utils/utils';
+import { extendPlayerProtoWithMissingEffects, getGearKeyFromSpec } from './proto_utils/utils';
 import { Raid } from './raid.js';
 import { runConcurrentSim, runConcurrentStatWeights } from './sim_concurrent';
 import { RequestTypes, SimSignalManager } from './sim_signal_manager';
 import { EventID, TypedEvent } from './typed_event.js';
-import { distinct, getEnumValues, isExternal, noop } from './utils.js';
+import { distinct, getEnumValues, isExternal, noop, sleep } from './utils.js';
 import { runConcurrentBulkSim } from './wasm';
 import { makeBulkGearDatabase } from './wasm/bulk_sim';
 import {
@@ -426,21 +426,100 @@ export class Sim {
 			const bulkReforgeRequest = reforgeConfig ? this.makeBulkSimReforgeRequest(reforgeConfig) : undefined;
 			const useWasmConcurrency = await this.shouldUseWasmConcurrency();
 			const backendBuildCandidates = !useWasmConcurrency && !!bulkSettings;
-			const preparedGearSets = backendBuildCandidates ? [] : gearSets.map(prepareGear);
-			const bulkReforgeCacheData =
-				bulkReforgeRequest && !backendBuildCandidates
-					? await getBulkSimReforgeCacheData({
-							player: this.raid.getActivePlayers()[0],
-							gearSets: preparedGearSets,
-							db: this.db,
-							reforgeRequest: bulkReforgeRequest,
-							raidBuffs: this.raid.getBuffs(),
-							partyBuffs: this.raid.getActivePlayers()[0].getParty()?.getBuffs(),
-							debuffs: this.raid.getDebuffs(),
-							onProgress: onCacheRestoreProgress,
-							signal: abortSignal,
-						})
-					: undefined;
+			let preparedGearSets = gearSets.map(prepareGear);
+			let preparedCandidateSpecs: EquipmentSpec[] | undefined = undefined;
+			let preparedCandidateGearKeys: string[] | undefined = undefined;
+			let preparedCandidateIndices: number[] | undefined = undefined;
+			if (backendBuildCandidates && bulkSettings) {
+				const bulkCandidatesResult = await this.getBulkCandidates(bulkSettings);
+				if (bulkCandidatesResult.error) {
+					throw new Error(bulkCandidatesResult.error.message || 'Failed to build bulk candidates');
+				}
+
+				const totalCandidates = bulkCandidatesResult.candidates.length;
+				onCacheRestoreProgress?.({
+					stage: 'candidate-build',
+					processedCandidates: 0,
+					totalCandidates,
+					restoredCandidates: 0,
+					current: 0,
+					total: totalCandidates,
+				});
+				preparedCandidateIndices = [];
+				preparedCandidateSpecs = [];
+				preparedCandidateGearKeys = [];
+				let lastYieldAt = performance.now();
+				let lastProgressEmitAt = lastYieldAt;
+				for (let i = 0; i < bulkCandidatesResult.candidates.length; i++) {
+					throwIfAborted(abortSignal);
+					const candidate = bulkCandidatesResult.candidates[i];
+					if (!candidate.gear) {
+						const processedCandidates = i + 1;
+						if (processedCandidates % 1024 === 0 || processedCandidates === totalCandidates) {
+							const now = performance.now();
+							if (processedCandidates === totalCandidates || now - lastProgressEmitAt >= 16) {
+								onCacheRestoreProgress?.({
+									stage: 'candidate-build',
+									processedCandidates,
+									totalCandidates,
+									restoredCandidates: 0,
+									current: processedCandidates,
+									total: totalCandidates,
+								});
+								lastProgressEmitAt = now;
+							}
+						}
+						continue;
+					}
+					// Prepare spec (remove meta gems, blacksmith sockets) before computing cache key
+					// so cache key matches what would be computed from prepared Gear objects
+					const preparedGear = prepareGear(this.db.lookupEquipmentSpec(candidate.gear));
+					const preparedSpec = preparedGear.asSpec();
+					preparedCandidateIndices.push(candidate.index);
+					preparedCandidateSpecs.push(preparedSpec);
+					preparedCandidateGearKeys.push(getGearKeyFromSpec(preparedSpec));
+					const processedCandidates = i + 1;
+					if (processedCandidates % 1024 === 0 || processedCandidates === totalCandidates) {
+						const now = performance.now();
+						if (processedCandidates === totalCandidates || now - lastProgressEmitAt >= 16) {
+							onCacheRestoreProgress?.({
+								stage: 'candidate-build',
+								processedCandidates,
+								totalCandidates,
+								restoredCandidates: 0,
+								current: processedCandidates,
+								total: totalCandidates,
+							});
+							lastProgressEmitAt = now;
+						}
+					}
+
+					// Periodically yield so large candidate lists do not block popup/UI rendering.
+					if (i % 2000 === 0) {
+						const yieldNow = performance.now();
+						if (yieldNow - lastYieldAt >= 16) {
+							await sleep(0);
+							lastYieldAt = performance.now();
+						}
+					}
+				}
+			}
+			const bulkReforgeCacheData = bulkReforgeRequest
+				? await getBulkSimReforgeCacheData({
+						player: this.raid.getActivePlayers()[0],
+						gearSets: backendBuildCandidates ? undefined : preparedGearSets,
+						candidateSpecs: backendBuildCandidates ? preparedCandidateSpecs : undefined,
+						candidateGearKeys: backendBuildCandidates ? preparedCandidateGearKeys : undefined,
+						candidateIndices: preparedCandidateIndices,
+						db: this.db,
+						reforgeRequest: bulkReforgeRequest,
+						raidBuffs: this.raid.getBuffs(),
+						partyBuffs: this.raid.getActivePlayers()[0].getParty()?.getBuffs(),
+						debuffs: this.raid.getDebuffs(),
+						onProgress: onCacheRestoreProgress,
+						signal: abortSignal,
+					})
+				: undefined;
 			throwIfAborted(abortSignal);
 			const cachedOptimizedGearSets = bulkReforgeCacheData?.cachedOptimizedGearSets ?? [];
 			const bulkGearDatabase =
@@ -467,15 +546,23 @@ export class Sim {
 			baseRequest.raid!.parties[0].players[0] = player;
 			throwIfAborted(abortSignal);
 
-			const candidates = backendBuildCandidates
-				? []
-				: (bulkReforgeCacheData?.candidates ?? preparedGearSets.map((gear, index) => ({ index, gear: gear.asSpec() })));
+			const requestCandidates =
+				bulkReforgeCacheData?.candidates ??
+				(backendBuildCandidates
+					? (preparedCandidateSpecs ?? []).map((gear, index) => ({
+							index: preparedCandidateIndices?.[index] ?? index,
+							gear,
+						}))
+					: preparedGearSets.map((gear, index) => ({
+							index: preparedCandidateIndices?.[index] ?? index,
+							gear: gear.asSpec(),
+						})));
 
 			const request = BulkSimRequest.create({
 				requestId,
 				baseRequest,
-				candidates,
-				optimizedCandidates: backendBuildCandidates ? [] : (bulkReforgeCacheData?.optimizedCandidates ?? []),
+				candidates: requestCandidates,
+				optimizedCandidates: bulkReforgeCacheData?.optimizedCandidates ?? [],
 				topResults: 5,
 				highStageIterations: this.getIterations(),
 				reforgeRequest: bulkReforgeRequest,
@@ -491,11 +578,14 @@ export class Sim {
 				};
 				result = await runConcurrentBulkSim(request, this.workerPool, onProgress, signals, onReforgeCandidateOptimized);
 				await Promise.all(cacheWrites);
+				if (bulkReforgeCacheData && result.optimizedCandidates?.length) {
+					await writeBulkSimReforgeCacheResults(result.optimizedCandidates, bulkReforgeCacheData);
+				}
 			} else {
 				const cacheWrites: Promise<void>[] = [];
 				const wrappedOnProgress: WorkerProgressCallback = (progress: ProgressMetrics) => {
 					onProgress(progress);
-					if (progress.bulkStage === BulkSimStage.BulkSimStageReforge && progress.optimizedCandidates && bulkReforgeCacheData) {
+					if (progress.optimizedCandidates?.length && bulkReforgeCacheData) {
 						const cacheEntries = progress.optimizedCandidates.flatMap(candidate => {
 							const cacheKey = bulkReforgeCacheData.cacheKeysByCandidateIndex.get(candidate.index);
 							if (!cacheKey || !candidate.gear) return [];
@@ -508,7 +598,7 @@ export class Sim {
 				};
 				result = await this.workerPool.bulkSimAsync(request, wrappedOnProgress, signals);
 				await Promise.all(cacheWrites);
-				if (bulkReforgeCacheData && result.optimizedCandidates) {
+				if (bulkReforgeCacheData && result.optimizedCandidates?.length) {
 					await writeBulkSimReforgeCacheResults(result.optimizedCandidates, bulkReforgeCacheData);
 				}
 			}

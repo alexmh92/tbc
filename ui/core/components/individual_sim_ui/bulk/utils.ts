@@ -2,10 +2,11 @@ import type { Player } from '../../../player';
 import { ReforgeOptimizer } from '../../suggest_reforges_action';
 import { ReforgeGearCache } from '../../../reforge_cache';
 import { BulkGearCandidate, BulkSimResult, BulkSimStage, DistributionMetrics, ReforgeOptimizeRequest } from '../../../proto/api';
-import { Debuffs, PartyBuffs, RaidBuffs } from '../../../proto/common';
+import { Debuffs, EquipmentSpec, PartyBuffs, RaidBuffs } from '../../../proto/common';
 import { ItemSlot } from '../../../proto/common';
 import { Database } from '../../../proto_utils/database';
 import { Gear } from '../../../proto_utils/gear';
+import { getGearKeyFromSpec } from '../../../proto_utils/utils';
 import { sleep } from '../../../utils';
 import {
 	BULK_SIM_ITEM_SLOT_TO_ITEM_SLOT_PAIRS,
@@ -24,9 +25,9 @@ export const getBulkItemSlotFromSlot = (slot: ItemSlot, canDualWield: boolean): 
 };
 
 export const dedupeGearSets = (gearSets: Gear[], existingGearSets: Gear[] = []): Gear[] => {
-	const seenGearKeys = new Set<string>(existingGearSets.map(gear => gear.getGearKey()));
+	const seenGearKeys = new Set<string>(existingGearSets.map(gear => getGearKeyFromSpec(gear.asSpec())));
 	return gearSets.filter(gear => {
-		const gearKey = gear.getGearKey();
+		const gearKey = getGearKeyFromSpec(gear.asSpec());
 		if (seenGearKeys.has(gearKey)) return false;
 		seenGearKeys.add(gearKey);
 		return true;
@@ -34,9 +35,10 @@ export const dedupeGearSets = (gearSets: Gear[], existingGearSets: Gear[] = []):
 };
 
 export type BulkSimReforgeCacheProgress = {
-	processedCandidates?: number;
-	totalCandidates?: number;
-	restoredCandidates?: number;
+	stage?: 'candidate-build' | 'cache-restore';
+	processedCandidates: number;
+	totalCandidates: number;
+	restoredCandidates: number;
 	current: number;
 	total: number;
 	message?: string;
@@ -52,7 +54,10 @@ type BulkSimReforgeCacheData = {
 
 type BulkSimReforgeCacheContext = {
 	player: Player<any>;
-	gearSets: Gear[];
+	gearSets?: Gear[];
+	candidateSpecs?: EquipmentSpec[];
+	candidateGearKeys?: string[];
+	candidateIndices?: number[];
 	db: Database;
 	reforgeRequest: ReforgeOptimizeRequest;
 	raidBuffs: RaidBuffs;
@@ -69,6 +74,9 @@ const BULK_CACHE_YIELD_BUDGET_MS = 16;
 export async function getBulkSimReforgeCacheData({
 	player,
 	gearSets,
+	candidateSpecs,
+	candidateGearKeys,
+	candidateIndices,
 	db,
 	reforgeRequest,
 	raidBuffs,
@@ -78,11 +86,15 @@ export async function getBulkSimReforgeCacheData({
 	signal,
 }: BulkSimReforgeCacheContext): Promise<BulkSimReforgeCacheData> {
 	throwIfAborted(signal);
+	if (!gearSets && !candidateSpecs) {
+		throw new Error('Either gearSets or candidateSpecs must be provided for cache restore.');
+	}
 
 	const cache = ReforgeGearCache.get(player.getPlayerSpec());
 	const configHash = await ReforgeOptimizer.getConfigHash({ player, reforgeRequest, raidBuffs, partyBuffs, debuffs });
-	const totalCandidates = gearSets.length;
+	const totalCandidates = candidateSpecs?.length ?? gearSets!.length;
 	onProgress?.({
+		stage: 'cache-restore',
 		processedCandidates: 0,
 		totalCandidates,
 		restoredCandidates: 0,
@@ -96,7 +108,7 @@ export async function getBulkSimReforgeCacheData({
 	const optimizedCandidates: BulkGearCandidate[] = [];
 	const cachedOptimizedGearSets: Gear[] = [];
 	const cacheKeysByCandidateIndex = new Map<number, string>();
-	const pendingEntries: Array<{ index: number; gear: Gear; cacheKey: string }> = [];
+	const pendingEntries: Array<{ index: number; spec: EquipmentSpec; cacheKey: string }> = [];
 
 	let processedCandidates = 0;
 	let restoredCandidates = 0;
@@ -118,7 +130,7 @@ export async function getBulkSimReforgeCacheData({
 				cachedOptimizedGearSets.push(db.lookupEquipmentSpec(cachedGear));
 				restoredCandidates++;
 			} else {
-				candidates.push(BulkGearCandidate.create({ index: entry.index, gear: entry.gear.asSpec() }));
+				candidates.push(BulkGearCandidate.create({ index: entry.index, gear: entry.spec }));
 				cacheKeysByCandidateIndex.set(entry.index, entry.cacheKey);
 			}
 
@@ -127,6 +139,7 @@ export async function getBulkSimReforgeCacheData({
 				const now = performance.now();
 				if (processedCandidates === totalCandidates || now - lastYieldAt >= BULK_CACHE_YIELD_BUDGET_MS) {
 					onProgress?.({
+						stage: 'cache-restore',
 						processedCandidates,
 						totalCandidates,
 						restoredCandidates,
@@ -145,9 +158,11 @@ export async function getBulkSimReforgeCacheData({
 
 	for (let i = 0; i < totalCandidates; i++) {
 		throwIfAborted(signal);
-		const gear = gearSets[i];
-		const cacheKey = await ReforgeGearCache.getKey(gear.getGearKey(), configHash);
-		pendingEntries.push({ index: i, gear, cacheKey });
+		const spec = candidateSpecs?.[i] ?? gearSets![i].asSpec();
+		const gearKey = candidateGearKeys?.[i] ?? getGearKeyFromSpec(spec);
+		const candidateIndex = candidateIndices?.[i] ?? i;
+		const cacheKey = await ReforgeGearCache.getKey(gearKey, configHash);
+		pendingEntries.push({ index: candidateIndex, spec, cacheKey });
 
 		if (pendingEntries.length >= BULK_CACHE_LOOKUP_BATCH_SIZE || i + 1 === totalCandidates) {
 			await flushPendingEntries();

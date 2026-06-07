@@ -9,6 +9,7 @@ import {
 	ArmorType,
 	Class,
 	Debuffs,
+	EquipmentSpec,
 	EnchantType,
 	Faction,
 	HandType,
@@ -1373,4 +1374,26 @@ export function migrateOldProto<Type>(oldProto: Type, oldApiVersion: number, con
 	}
 
 	return migratedProto;
+}
+
+export function getGearKeyFromSpec(spec: EquipmentSpec): string {
+	const itemKeys = spec.items.map(item => {
+		if (!item || !item.id) {
+			return '';
+		}
+
+		return [item.id, item.randomSuffix ?? 0, item.enchant ?? 0, (item.gems ?? []).map(gemId => gemId ?? 0).join(',')].join(':');
+	});
+
+	const reorderPairedSlots = (firstSlot: ItemSlot, secondSlot: ItemSlot): void => {
+		const slotKeys = [itemKeys[firstSlot], itemKeys[secondSlot]].sort();
+		itemKeys[firstSlot] = slotKeys[0];
+		itemKeys[secondSlot] = slotKeys[1];
+	};
+
+	// Normalize interchangeable slots so equivalent gear layouts share a cache key.
+	reorderPairedSlots(ItemSlot.ItemSlotFinger1, ItemSlot.ItemSlotFinger2);
+	reorderPairedSlots(ItemSlot.ItemSlotTrinket1, ItemSlot.ItemSlotTrinket2);
+
+	return itemKeys.join('|');
 }
