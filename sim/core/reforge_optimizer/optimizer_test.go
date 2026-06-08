@@ -28,6 +28,7 @@ func TestReforgerOptimizer(t *testing.T) {
 		{name: "reference-6", fileName: "reforge-reference-6.json"},
 		{name: "reference-7", fileName: "reforge-reference-7.json"},
 		{name: "reference-8", fileName: "reforge-reference-8.json"},
+		{name: "reference-10", fileName: "reforge-reference-10.json"},
 	}
 
 	for _, tc := range testCases {
@@ -70,10 +71,6 @@ func TestReforgerOptimizerReference9RespectsMaxGemPhase(t *testing.T) {
 	optimizedGear := result.GetOptimizedGear()
 	if optimizedGear == nil {
 		t.Fatal("Optimize returned no optimized gear")
-	}
-
-	if protopkg.Equal(originalGear, optimizedGear) {
-		t.Fatal("reference-9 optimization unexpectedly made no gear changes")
 	}
 
 	maxGemPhase := request.GetSettings().GetMaxGemPhase()

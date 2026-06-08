@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/wowsims/tbc/sim/core"
@@ -92,13 +91,6 @@ func trySolveWithHiGHS(search *reforgeSearchState, signals simsignals.Signals) (
 			solveDuration = time.Since(solveStartedAt)
 		}
 		if err != nil || !ok {
-			if shouldRelaxExactHitCap(err, statConstraints) {
-				statConstraints = relaxExactHitCapConstraints(statConstraints)
-				if debug {
-					log.Printf("[reforgeOptimize] HiGHS pass=%d relaxing exact spell hit cap to min-cap after infeasible solve", passIdx+1)
-				}
-				continue
-			}
 			return nil, 0, ok, err
 		}
 
@@ -149,6 +141,7 @@ func improveSelectedChoices(search *reforgeSearchState, choices []reforgeChoice,
 	if !ok {
 		return bestChoices, bestDelta
 	}
+	bestSocketBonusCount := selectedChoicesSocketBonusCount(bestChoices)
 	if !selectedChoicesHardCapsValid(search, bestChoices) {
 		return bestChoices, bestDelta
 	}
@@ -175,13 +168,21 @@ func improveSelectedChoices(search *reforgeSearchState, choices []reforgeChoice,
 				candidateDelta := subtractUnitStats(bestDelta, currentChoiceDelta)
 				candidateDelta = addUnitStats(candidateDelta, choiceObjectiveDelta(alternative))
 				candidateScore, ok := search.evaluate(candidateDelta)
-				if !ok || candidateScore <= bestScore+1e-9 {
+				if !ok {
+					continue
+				}
+				candidateSocketBonusCount := selectedChoicesSocketBonusCount(candidateChoices)
+				scoreImproved := candidateScore > bestScore+1e-9
+				equalScore := math.Abs(candidateScore-bestScore) <= 1e-9
+				bonusImproved := equalScore && candidateSocketBonusCount > bestSocketBonusCount
+				if !scoreImproved && !bonusImproved {
 					continue
 				}
 
 				bestChoices = candidateChoices
 				bestDelta = candidateDelta
 				bestScore = candidateScore
+				bestSocketBonusCount = candidateSocketBonusCount
 				improved = true
 				break
 			}
@@ -213,6 +214,16 @@ func sameReforgeChoice(left reforgeChoice, right reforgeChoice) bool {
 	return true
 }
 
+func selectedChoicesSocketBonusCount(choices []reforgeChoice) int {
+	count := 0
+	for _, choice := range choices {
+		if choice.socketBonus && len(choice.bonusSocketIdxs) > 0 {
+			count++
+		}
+	}
+	return count
+}
+
 func highsOptimizerTimeout(_ *reforgeSearchState) time.Duration { return optimizerTimeout }
 
 func highsOptimizerPassTimeout(deadline time.Time) time.Duration {
@@ -224,34 +235,6 @@ func highsOptimizerPassTimeout(deadline time.Time) time.Duration {
 }
 
 func highsOptimizerMIPRelGap(_ *reforgeSearchState) float64 { return 0 }
-
-func shouldRelaxExactHitCap(err error, constraints []mipStatConstraint) bool {
-	if err == nil || !strings.Contains(err.Error(), "model status 8") {
-		return false
-	}
-	for _, c := range constraints {
-		isExactBound := c.hasActualLower && c.hasActualUpper && math.Abs(c.actualUpper-c.actualLower) < 1e-9
-		if isExactBound && c.unitStat == stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellHitPercent) {
-			return true
-		}
-	}
-	return false
-}
-
-func relaxExactHitCapConstraints(constraints []mipStatConstraint) []mipStatConstraint {
-	updated := make([]mipStatConstraint, len(constraints))
-	copy(updated, constraints)
-	for idx := range updated {
-		isExactBound := updated[idx].hasActualLower && updated[idx].hasActualUpper && math.Abs(updated[idx].actualUpper-updated[idx].actualLower) < 1e-9
-		if !isExactBound || updated[idx].unitStat != stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellHitPercent) {
-			continue
-		}
-		updated[idx].upper = math.Inf(1)
-		updated[idx].hasActualUpper = false
-		updated[idx].actualUpper = 0
-	}
-	return updated
-}
 
 func choicesFromMIPSolution(search *reforgeSearchState, model mipModel, solution mipSolution) ([]reforgeChoice, error) {
 	choices := make([]reforgeChoice, len(search.slots))
@@ -642,19 +625,10 @@ func updateHiGHSCapPass(search *reforgeSearchState, passIdx int, delta core.Unit
 				log.Printf("[reforgeOptimize] HiGHS pass=%d adding max cap stat=%s valueDelta=%.3f capDelta=%.3f", passIdx+1, unitStatName(hardCap.unitStat), value, hardCap.cap)
 			}
 		} else {
-			isSpellHitCap := hardCap.unitStat == stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellHitPercent)
-			if isSpellHitCap {
-				statConstraints = append(statConstraints, mipStatConstraint{unitStat: hardCap.unitStat, lower: hardCap.cap, upper: hardCap.cap, actualLower: hardCap.cap, hasActualLower: true, actualUpper: hardCap.cap, hasActualUpper: true})
-			} else {
-				statConstraints = append(statConstraints, mipStatConstraint{unitStat: hardCap.unitStat, lower: hardCap.cap, upper: math.Inf(1), actualLower: hardCap.cap, hasActualLower: true})
-			}
+			statConstraints = append(statConstraints, mipStatConstraint{unitStat: hardCap.unitStat, lower: hardCap.cap, upper: math.Inf(1), actualLower: hardCap.cap, hasActualLower: true})
 			weights = setUnitStat(weights, hardCap.unitStat, 0)
 			if reforgeDebug(search) {
-				if isSpellHitCap {
-					log.Printf("[reforgeOptimize] HiGHS pass=%d adding exact cap stat=%s valueDelta=%.3f capDelta=%.3f newWeight=0", passIdx+1, unitStatName(hardCap.unitStat), value, hardCap.cap)
-				} else {
-					log.Printf("[reforgeOptimize] HiGHS pass=%d adding min cap stat=%s valueDelta=%.3f capDelta=%.3f newWeight=0", passIdx+1, unitStatName(hardCap.unitStat), value, hardCap.cap)
-				}
+				log.Printf("[reforgeOptimize] HiGHS pass=%d adding min cap stat=%s valueDelta=%.3f capDelta=%.3f newWeight=0", passIdx+1, unitStatName(hardCap.unitStat), value, hardCap.cap)
 			}
 		}
 		constrainedStats[hardCap.unitStat] = true

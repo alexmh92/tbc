@@ -1377,12 +1377,16 @@ export function migrateOldProto<Type>(oldProto: Type, oldApiVersion: number, con
 }
 
 export function getGearKeyFromSpec(spec: EquipmentSpec): string {
-	const itemKeys = spec.items.map(item => {
-		if (!item || !item.id) {
+	const itemKeys = spec.items.map((item, slotIdx) => {
+		if (!item?.id) {
 			return '';
 		}
 
-		return [item.id, item.randomSuffix ?? 0, item.enchant ?? 0, (item.gems ?? []).map(gemId => gemId ?? 0).join(',')].join(':');
+		// For reforge input identity we intentionally ignore all mutable reforge
+		// state and only retain the head-slot meta gem if present.
+		const metaGemId = slotIdx === ItemSlot.ItemSlotHead ? (item.gems?.[0] ?? 0) : 0;
+
+		return [item.id, item.randomSuffix ?? 0, item.enchant ?? 0, metaGemId].join(':');
 	});
 
 	const reorderPairedSlots = (firstSlot: ItemSlot, secondSlot: ItemSlot): void => {
