@@ -6,56 +6,98 @@ argument-hint: 'Describe the TBC Bulk Sim candidate flow, settings, or integrati
 
 # WoWSims TBC Bulk Sim Handoff
 
-## When to Use
+## Scope
 
-- Continue work on TBC bulk candidate generation and filtering.
-- Debug bulk-tab gem constraints and request shaping.
-- Validate integration boundaries between Bulk Sim flow and backend reforge optimizer.
+- Bulk candidate generation and staged simulation flow.
+- Bulk reforge pre-pass integration and cache behavior.
+- Progress, abort semantics, and local vs WASM orchestration.
 
-## Current Architecture (TBC)
+## Architecture
 
-- Bulk candidate generation: `sim/bulk/candidates.go`.
-- Bulk settings proto domain: `proto/api.proto` (`BulkSettings`).
-- Bulk tab/UI flow: `ui/core/components/individual_sim_ui/bulk_tab.tsx` and related bulk utils.
-- Suggest Reforges settings are separate (`ReforgeSettings` in `ui.proto`) and must not be merged with bulk settings.
+- Shared messages: `proto/api.proto` (`BulkSimRequest`, `BulkSimResult`, `BulkSettings`).
+- Candidate generation: `sim/bulk/candidates.go`.
+- Local/server reforge pre-pass wrapper: `sim/web/bulk.go`.
+- Web endpoint wiring: `sim/web/main.go`.
+- Frontend orchestration and cache partitioning: `ui/core/sim.ts`.
+- Bulk utilities and cache helpers: `ui/core/components/individual_sim_ui/bulk/utils.ts`.
+- Generic cache storage: `ui/core/reforge_cache.ts`.
+- Browser WASM path: `ui/core/wasm/bulk_sim.ts`.
 
-## Key TBC Settings
+## Core Invariants
 
-- `BulkSettings` controls bulk-tab gem constraints (`max_gem_phase`, `max_gem_quality`).
-- `ReforgeSettings` controls Suggest Reforges gem constraints (`max_gem_phase`, `max_gem_quality`).
-- Keep these settings domains separate in code paths and serialization.
+- Baseline gear source is `base_request.raid.parties[0].players[0].equipment`.
+- Candidate identity remains stable through `BulkGearCandidate.index`.
+- With `reforge_request` enabled:
+	- Cache hits go to `optimized_candidates`.
+	- Work-to-optimize goes to `candidates`.
+- Before staged sim starts:
+	- Merge cache hits with newly optimized candidates.
+	- Clear `request.ReforgeRequest`.
+- Dedup for sim input must exclude baseline-equivalent gear and duplicate optimized gear.
+- Keep full optimized candidate outputs for cache writing so every input key can be persisted.
 
-## TBC-Specific Constraints
+## Settings Boundaries
 
-- Do not copy MoP bulk orchestration 1:1 when request/response shapes differ.
-- TBC has different supported classes/specs and proto fields than MoP; keep candidate logic tied to this repo’s proto/db model.
-- TBC `core.Enchant` compatibility logic should not assume MoP-only fields like `EnchantType`.
+- `BulkSettings` controls bulk-tab constraints.
+- `ReforgeSettings` controls Suggest Reforges constraints.
+- Never merge or alias these domains in request shaping or serialization.
 
-## Key Files
+## Local/Server Reforge Flow
 
-- `sim/bulk/candidates.go`
-- `proto/api.proto`
-- `ui/core/components/individual_sim_ui/bulk_tab.tsx`
-- `ui/core/components/individual_sim_ui/bulk/utils.ts`
-- `ui/core/sim.ts`
-- `ui/core/components/suggest_reforges_action.tsx`
+- Candidate generation runs unless request is fully cache-restored.
+- Reforge progress emits `BulkSimStageReforge` before low/medium/high stages.
+- Per-candidate reforge failure falls back to original candidate gear.
+- Abort returns partial optimized candidates that already completed.
+
+## Frontend/WASM Flow
+
+- WASM reforge is frontend-orchestrated with per-gear optimizer calls.
+- Cache entries store optimized output gear values, not metadata-only records.
+- Cache key is input identity; output is restored from cached gear value.
+
+## Candidate Counting and Filtering
+
+- `rawCombinations` is the mixed-radix candidate index space.
+- `combinations` is the filtered runnable count.
+- Required set-bonus matching scans raw combinations, then filters runnable candidates.
+- User-visible progress/counts should reflect filtered candidate totals.
+
+## Performance Guardrails
+
+- Avoid per-candidate allocations in hot loops.
+- Prefer preallocated imperative loops in candidate/cache helpers.
+- Keep reforge candidate-cache lookup path read-friendly and hash reuse-aware.
+- Throttle progress emission frequency to reduce lock/contention overhead.
+
+## Logging Expectations
+
+- Candidate generation logs started and completed with duration and counts.
+- Reforge stage logs one started event and one completion summary.
 
 ## Validation Commands
 
 ```bash
+make proto
 npm run type-check
+go test -count=1 ./sim/core/bulk ./sim/web
 ```
 
-```bash
-npm run build
-```
+For reforge-integration changes:
 
 ```bash
-go test -count=1 ./sim/core ./sim/web
+go test -count=1 ./sim/core/reforge_optimizer ./sim/web
+```
+
+## Fast Search Aids
+
+```bash
+rg -n "BulkSimReforge|reforge_request|optimized_candidates|BulkSimStageReforge" proto sim ui
+rg -n "bulkSimAsync|/bulkSimAsync" sim/web
 ```
 
 ## Common Pitfalls
 
 - Conflating `BulkSettings` and `ReforgeSettings`.
-- Porting MoP-only proto assumptions into TBC.
-- Adding backend/frontend behavior that diverges from current TBC request structures.
+- Porting MoP-only assumptions directly into TBC request/proto shapes.
+- Writing cache metadata without optimized gear payload.
+- Dropping partial optimized candidates on abort paths.

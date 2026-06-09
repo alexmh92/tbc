@@ -6,77 +6,92 @@ argument-hint: 'Describe the TBC reforge optimizer bug, fixture, or behavior to 
 
 # WoWSims TBC Reforge Optimizer Handoff
 
-## When to Use
+## Scope
 
-- Continue work in `sim/core/reforge_optimizer`.
-- Debug backend Suggest Reforges parity issues.
-- Validate gem, socket bonus, hard-cap/soft-cap, and meta-gem behavior.
+- Core optimizer behavior in `sim/core/reforge_optimizer`.
+- Endpoint and worker integration for Suggest Reforges.
+- HiGHS-backed MIP solving across reforge, gems, and socket bonus choices.
+- Relative stat cap handling and exact post-solve validation.
 
-## Current Architecture (TBC)
+## Architecture
 
-- Backend package: `sim/core/reforge_optimizer`.
+- Main flow: `sim/core/reforge_optimizer/optimizer.go`.
+- MIP model and constraints: `sim/core/reforge_optimizer/solver.go`.
+- Choice/cap/stat support: `choices.go`, `caps.go`, `search.go`, `stats.go`.
+- Gear apply + regem minimization: `gear.go`.
+- Gem/socket handling: `gems.go` and meta-gem constraints helpers.
+- Relative cap logic: `relative_stat_cap.go`.
+- HiGHS bridges:
+    - Go non-browser: `highswasm.go`.
+    - Browser wasm: `highs_js.go`.
 - Frontend caller: `ui/core/components/suggest_reforges_action.tsx`.
-- Backend endpoint: `/reforgeOptimize`.
-- Worker API call: `reforgeOptimize`.
-- Request/response protos: `ui.proto` (`ReforgeOptimizeRequest`, `ReforgeOptimizeResult`, `ReforgeSettings`).
-- Final correctness must be validated by exact `core.ComputeStats` outcomes, not only solver objective deltas.
 
-## Main Files
+## Core Invariants
 
-- `sim/core/reforge_optimizer/optimizer.go`
-- `sim/core/reforge_optimizer/solver.go`
-- `sim/core/reforge_optimizer/choices.go`
-- `sim/core/reforge_optimizer/gems.go`
-- `sim/core/reforge_optimizer/meta_gem_constraints.go`
-- `sim/core/reforge_optimizer/gear.go`
-- `sim/core/reforge_optimizer/caps.go`
-- `sim/core/reforge_optimizer/solver_test.go`
-- `ui/core/components/suggest_reforges_action.tsx`
+- Final correctness must be validated with exact `core.ComputeStats` results.
+- Solver objective/deltas are guidance, not final correctness authority.
+- Optimizer includes reforge + gem + socket bonus surfaces when enabled.
+- Socket bonus feasibility is modeled explicitly with link constraints.
+- On HiGHS failure, return an error; do not silently downgrade solver behavior.
+- Verbose optimizer diagnostics remain behind `ReforgeOptimizeRequest.debug`.
 
-## Critical TBC Behavior
+## Cap and Breakpoint Rules
 
-- Compare-color meta gems must remain strict greater-than (example `25893`: blue > yellow).
-- Final chosen gear must remain meta-valid after post-solver improvement/minimization.
-- Socket bonus matching should be EP-driven; do not auto-force solely because a bonus touches an uncapped cap stat.
-- Keep frontend/backend socket-force behavior aligned.
+- Validate and normalize cap settings before solve.
+- Enforce hard caps and breakpoint-derived limits as MIP constraints.
+- If exact post-check violates constraints, tighten existing rows and re-solve.
+- Keep soft-cap scoring piecewise with pre-cap and post-cap EP behavior.
 
-## Known Reference Fixture
+## Relative Stat Cap Rules
 
-- `reforge-reference-3.json` is the Shadow priest parity fixture.
-- Corrected expected behavior:
-    - Preserve active `25893` meta constraints.
-    - Avoid unnecessary hit socket-bonus chasing when all-red is better EP.
+- Model forced-vs-constrained requirements as explicit linear constraints.
+- Preserve raw Crit/Haste/Mastery deltas for feasibility checks.
+- Validate relative cap results with exact final stats and tighten rows if needed.
+- Windwalker forced Mastery constrains Mastery vs Crit and Mastery vs Haste; avoid unnecessary cross constraints.
 
-## Latest Verified Session Learnings (June 2026)
+## Gem and Meta Rules
 
-- Keep solver constraint coefficients aligned with frontend LP model semantics (use objective/model deltas for constraints).
-- Avoid adding eager hard-cap constraints before first solve pass; this can trigger cap-pass-limit failures on stable fixtures.
-- Frontend parity debugging should be driven by historical methods in old `suggest_reforges_action.tsx` (`checkWeights`, `buildGemOptions`, `checkCaps`, `minimizeRegems`) rather than ad-hoc backend heuristics.
-- Gem filtering/parity is highly sensitive to candidate-pruning rules and stat allow-lists; broad pruning changes can regress multiple fixtures even when a single reference improves.
-- Regem minimization behavior can change fixture equality without changing high-level optimization quality; validate both strict fixture equality and EP/stat deltas when assessing parity.
+- Meta gems are not regular swap targets.
+- Regem minimization must preserve/restore meta socket correctness.
+- Keep gem order stable in `EquipmentSpec` output.
+- Preserve class-specific stat dependency semantics in gem scoring.
 
-## TBC Porting Constraints
+## Integration Contract
 
-- Do not port MoP-only optimizer assumptions directly.
-- Keep TBC proto/message shapes authoritative.
-- Avoid MoP-specific request or helper patterns that do not exist in this repo.
+- Backend endpoint path remains `/reforgeOptimize`.
+- Worker API call remains `reforgeOptimize`.
+- Request/response proto source remains `ui.proto` (`ReforgeOptimizeRequest`, `ReforgeOptimizeResult`, `ReforgeSettings`).
+- Bulk integration uses bulk mode on the same optimizer request domain; avoid duplicate reforge config types.
+
+## Performance Guardrails
+
+- Keep model-building and hot-path helpers allocation-aware.
+- Keep selected-choice legality checks lightweight.
+- Avoid debug timers/tracing overhead unless debug is enabled.
 
 ## Validation Commands
 
 ```bash
 go test -count=1 ./sim/core/reforge_optimizer
-```
-
-```bash
 npm run type-check
 ```
 
+For integration changes touching bulk or endpoint behavior:
+
 ```bash
-npm run build
+go test -count=1 ./sim/core/reforge_optimizer ./sim/web
+```
+
+## Fast Search Aids
+
+```bash
+rg -n "ReforgeOptimizeRequest|relativeStatCap|softCap|breakpoint|HiGHS" proto sim ui
+rg -n "reforgeOptimize|/reforgeOptimize" sim ui
 ```
 
 ## Common Pitfalls
 
-- Accepting solver-feasible output without validating final exact behavior.
-- Letting post-processing invalidate a solver-valid meta constraint.
-- Introducing frontend/backend drift in gem/socket forcing behavior.
+- Accepting solver-feasible output without exact-stat verification.
+- Letting post-processing invalidate meta-gem or socket constraints.
+- Introducing frontend/backend drift in gem/socket-force behavior.
+- Porting MoP-specific assumptions into TBC proto or stat semantics.
