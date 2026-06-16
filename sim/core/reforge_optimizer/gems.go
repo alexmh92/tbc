@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"log"
-	"math"
 	"slices"
 
 	"github.com/wowsims/tbc/sim/core"
@@ -12,17 +11,16 @@ import (
 	"github.com/wowsims/tbc/sim/core/stats"
 )
 
-func buildReforgeGemOptions(request *proto.ReforgeOptimizeRequest, player *proto.Player, weights core.UnitStats, hardCaps []reforgeHardCap, softCaps []reforgeSoftCap) map[proto.GemColor][]reforgeGemOption {
+func buildReforgeGemOptions(request *proto.ReforgeOptimizeRequest, player *proto.Player, weights core.UnitStats, hardCaps []reforgeHardCap, softCaps []reforgeSoftCap, statConstraints []mipStatConstraint) map[proto.GemColor][]reforgeGemOption {
 	options := make(map[proto.GemColor][]reforgeGemOption)
 	settings := request.GetSettings()
 	if settings == nil {
 		return options
 	}
-	gemWeights := gemObjectiveWeights(weights, hardCaps, softCaps)
 	isTank := playerIsTankSpec(player)
-	allowedStats := allowedGemStats(gemWeights)
+	allowedStats := allowedGemStats(weights, hardCaps, statConstraints)
 	if request.GetDebug() {
-		log.Printf("[reforgeOptimize] gem sort weights=%s", formatGemChoiceEPWeights(gemWeights))
+		log.Printf("[reforgeOptimize] gem weights=%s", formatGemChoiceEPWeights(weights))
 	}
 
 	for _, socketColor := range []proto.GemColor{
@@ -31,60 +29,13 @@ func buildReforgeGemOptions(request *proto.ReforgeOptimizeRequest, player *proto
 		proto.GemColor_GemColorBlue,
 		proto.GemColor_GemColorYellow,
 	} {
-		candidates := filteredGemCandidatesForSocket(request.GetGemOptions(), player, socketColor, gemWeights, hardCaps, softCaps, settings, allowedStats, isTank)
+		candidates := filteredGemCandidatesForSocket(request.GetGemOptions(), player, socketColor, weights, hardCaps, softCaps, settings, allowedStats, isTank)
 		options[socketColor] = selectGemCandidates(candidates)
 		if request.GetDebug() {
-			logTopGemOptions(socketColor, options[socketColor], gemWeights)
+			logTopGemOptions(socketColor, options[socketColor], weights)
 		}
 	}
 	return options
-}
-
-func gemObjectiveWeights(weights core.UnitStats, hardCaps []reforgeHardCap, softCaps []reforgeSoftCap) core.UnitStats {
-	gemWeights := weights
-	if shouldIgnoreSpiritTieBreakForGems(hardCaps, softCaps) && math.Abs(gemWeights.Stats[stats.Spirit]) <= 0.01+1e-9 {
-		gemWeights.Stats[stats.Spirit] = 0
-	}
-	if hasSpellHitHardCap(hardCaps) && math.Abs(gemWeights.Stats[stats.MP5]) <= 0.29+1e-9 {
-		gemWeights.Stats[stats.MP5] = 0
-	}
-	return gemWeights
-}
-
-func shouldIgnoreSpiritTieBreakForGems(hardCaps []reforgeHardCap, softCaps []reforgeSoftCap) bool {
-	for _, hardCap := range hardCaps {
-		if isNatureSpellHitUnitStat(hardCap.unitStat) {
-			return true
-		}
-	}
-	for _, softCap := range softCaps {
-		if isNatureSpellHitUnitStat(softCap.unitStat) {
-			return true
-		}
-	}
-	return false
-}
-
-func isNatureSpellHitUnitStat(unitStat stats.UnitStat) bool {
-	if !unitStat.IsPseudoStat() {
-		return false
-	}
-	switch unitStat.PseudoStatIdx() {
-	case int(proto.PseudoStat_PseudoStatSchoolHitPercentNature):
-		return true
-	default:
-		return false
-	}
-}
-
-func hasSpellHitHardCap(hardCaps []reforgeHardCap) bool {
-	spellHitUnitStat := stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellHitPercent)
-	for _, hardCap := range hardCaps {
-		if hardCap.unitStat == spellHitUnitStat && hardCap.cap > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 func logTopGemOptions(socketColor proto.GemColor, options []reforgeGemOption, weights core.UnitStats) {
@@ -99,7 +50,7 @@ func logTopGemOptions(socketColor proto.GemColor, options []reforgeGemOption, we
 		statsSummary := "none"
 		epSummary := "none"
 		cappedSummary := formatCappedStatSummary(option.cappedStats)
-		if gem, ok := core.GemsByID[option.id]; ok {
+		if gem, ok := core.GetGemByID(option.id); ok {
 			name = gem.Name
 			statsSummary = formatStatsArray(stats.Stats(gem.Stats))
 		}
@@ -180,16 +131,18 @@ func filteredGemCandidatesForSocket(gems []*proto.ReforgeGemOption, player *prot
 			continue
 		}
 
-		gemStats := adjustedGemStatsForRace(stats.FromProtoArray(gem.GetStats()), player.GetRace())
+		gemStats := stats.FromProtoArray(gem.GetStats())
 		if !gemStatsAllowed(gemStats, allowedStats, isTank) {
 			continue
 		}
+		rawDelta := rawUnitStatsFromStats(gemStats)
 		delta := unitStatsFromStats(gemStats, weights)
 		candidates = append(candidates, reforgeGemOption{
 			id:              gem.GetId(),
 			color:           gem.GetColor(),
 			isJewelcrafting: isJewelcrafting,
 			unique:          gem.GetUnique(),
+			rawDelta:        rawDelta,
 			objectiveDelta:  delta,
 			score:           dotUnitStats(delta, weights),
 			cappedStats:     cappedGemStats(delta, hardCaps, softCaps),
@@ -199,17 +152,6 @@ func filteredGemCandidatesForSocket(gems []*proto.ReforgeGemOption, player *prot
 		return cmp.Compare(b.score, a.score)
 	})
 	return candidates
-}
-
-func adjustedGemStatsForRace(gemStats stats.Stats, race proto.Race) stats.Stats {
-	adjusted := gemStats
-	if race == proto.Race_RaceHuman && adjusted[stats.Spirit] != 0 {
-		adjusted[stats.Spirit] *= 1.1
-	}
-	if race == proto.Race_RaceGnome && adjusted[stats.Intellect] != 0 {
-		adjusted[stats.Intellect] *= 1.05
-	}
-	return adjusted
 }
 
 func selectGemCandidates(candidates []reforgeGemOption) []reforgeGemOption {
@@ -287,7 +229,7 @@ func formatCappedStatSummary(cappedStats []stats.UnitStat) string {
 	return formatLimitedStringList(parts, 8)
 }
 
-func allowedGemStats(weights core.UnitStats) map[stats.Stat]bool {
+func allowedGemStats(weights core.UnitStats, hardCaps []reforgeHardCap, statConstraints []mipStatConstraint) map[stats.Stat]bool {
 	allowed := make(map[stats.Stat]bool)
 	for statIdx, weight := range weights.Stats {
 		if weight != 0 {
@@ -295,7 +237,11 @@ func allowedGemStats(weights core.UnitStats) map[stats.Stat]bool {
 		}
 	}
 	// Keep parent rating stats gem-eligible when weight normalization moves EP
-	// onto pseudo child stats (frontend parity for hit/crit/haste style caps).
+	// onto pseudo child stats (frontend parity for hit/crit/haste style caps),
+	// when an active hard cap still requires the child pseudostat, or when an
+	// active stat constraint (from a fired soft cap) targets the child pseudostat.
+	// Without this last case, soft-cap-fired stats lose all gem coefficients
+	// in the LP → the minimum constraint becomes trivially empty → infeasible.
 	for _, parent := range []stats.Stat{
 		stats.MeleeHitRating,
 		stats.SpellHitRating,
@@ -309,9 +255,49 @@ func allowedGemStats(weights core.UnitStats) map[stats.Stat]bool {
 		if allowed[parent] {
 			continue
 		}
-		for _, child := range childPseudoStats(parent) {
+		children := childPseudoStats(parent)
+		for _, child := range children {
 			if getUnitStat(weights, stats.UnitStatFromPseudoStat(child)) != 0 {
 				allowed[parent] = true
+				break
+			}
+		}
+		if allowed[parent] {
+			continue
+		}
+		// Also keep eligible when a minimum hard cap targets the child pseudostat
+		// (cap > 0, not an undershoot cap). After validateReforgeWeights zeroes both
+		// SpellHitRating and SpellHitPercent weights once the cap fires, the LP would
+		// otherwise drop all hit gem coefficients → constraint tightening diverges.
+		for _, child := range children {
+			childUS := stats.UnitStatFromPseudoStat(child)
+			for _, hc := range hardCaps {
+				if hc.unitStat == childUS && hc.cap > 0 && !hc.undershoot {
+					allowed[parent] = true
+					break
+				}
+			}
+			if allowed[parent] {
+				break
+			}
+		}
+		if allowed[parent] {
+			continue
+		}
+		// Keep eligible when a fired soft cap created a minimum stat constraint
+		// targeting the child pseudostat. Rebuilding slot choices after the cap
+		// fires drops the child's weight to 0; without this, gems that carry only
+		// the capped stat are excluded and the LP minimum constraint becomes
+		// vacuous → the model is infeasible despite a valid solution existing.
+		for _, child := range children {
+			childUS := stats.UnitStatFromPseudoStat(child)
+			for _, sc := range statConstraints {
+				if sc.unitStat == childUS && sc.hasActualLower && sc.actualLower > 0 {
+					allowed[parent] = true
+					break
+				}
+			}
+			if allowed[parent] {
 				break
 			}
 		}
@@ -394,13 +380,13 @@ func clearGems(equipment *proto.EquipmentSpec, settings *proto.ReforgeSettings) 
 			if gemID == 0 {
 				continue
 			}
-			if gem, ok := core.GemsByID[gemID]; ok && gem.Color == proto.GemColor_GemColorMeta {
+			if gem, ok := core.GetGemByID(gemID); ok && gem.Color == proto.GemColor_GemColorMeta {
 				continue
 			}
 			if isHeadMetaSocket(item, slot, gemIdx) {
 				continue
 			}
-			if gem, ok := core.GemsByID[gemID]; !ok || gem.Color != proto.GemColor_GemColorMeta {
+			if gem, ok := core.GetGemByID(gemID); !ok || gem.Color != proto.GemColor_GemColorMeta {
 				item.Gems[gemIdx] = 0
 			}
 		}
@@ -411,7 +397,7 @@ func isHeadMetaSocket(item *proto.ItemSpec, slot proto.ItemSlot, gemIdx int) boo
 	if slot != proto.ItemSlot_ItemSlotHead {
 		return false
 	}
-	if dbItem, ok := core.ItemsByID[item.GetId()]; ok && gemIdx < len(dbItem.GemSockets) {
+	if dbItem := core.GetItemByID(item.GetId()); dbItem != nil && gemIdx < len(dbItem.GemSockets) {
 		return dbItem.GemSockets[gemIdx] == proto.GemColor_GemColorMeta
 	}
 	return gemIdx == 0

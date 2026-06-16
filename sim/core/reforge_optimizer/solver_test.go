@@ -165,29 +165,6 @@ func TestShouldForceSocketBonusDoesNotAutoForceCappedHitBonus(t *testing.T) {
 	const blueGemID int32 = 91007
 	const yellowGemID int32 = 91008
 	const redGemID int32 = 91009
-	originalBlueGem, blueGemExisted := core.GemsByID[blueGemID]
-	originalYellowGem, yellowGemExisted := core.GemsByID[yellowGemID]
-	originalRedGem, redGemExisted := core.GemsByID[redGemID]
-	core.GemsByID[blueGemID] = core.Gem{ID: blueGemID, Color: proto.GemColor_GemColorBlue, Stats: stats.Stats{stats.Intellect: 1}}
-	core.GemsByID[yellowGemID] = core.Gem{ID: yellowGemID, Color: proto.GemColor_GemColorYellow, Stats: stats.Stats{stats.Intellect: 1}}
-	core.GemsByID[redGemID] = core.Gem{ID: redGemID, Color: proto.GemColor_GemColorRed, Stats: stats.Stats{stats.Intellect: 100}}
-	t.Cleanup(func() {
-		if blueGemExisted {
-			core.GemsByID[blueGemID] = originalBlueGem
-		} else {
-			delete(core.GemsByID, blueGemID)
-		}
-		if yellowGemExisted {
-			core.GemsByID[yellowGemID] = originalYellowGem
-		} else {
-			delete(core.GemsByID, yellowGemID)
-		}
-		if redGemExisted {
-			core.GemsByID[redGemID] = originalRedGem
-		} else {
-			delete(core.GemsByID, redGemID)
-		}
-	})
 
 	item := core.Item{GemSockets: []proto.GemColor{proto.GemColor_GemColorBlue, proto.GemColor_GemColorYellow}}
 	item.SocketBonus = stats.Stats{}
@@ -198,9 +175,9 @@ func TestShouldForceSocketBonusDoesNotAutoForceCappedHitBonus(t *testing.T) {
 	weights = setUnitStat(weights, stats.UnitStatFromStat(stats.Intellect), 0.1)
 
 	gemOptions := map[proto.GemColor][]reforgeGemOption{
-		proto.GemColor_GemColorBlue:      {{id: blueGemID}},
-		proto.GemColor_GemColorYellow:    {{id: yellowGemID}},
-		proto.GemColor_GemColorPrismatic: {{id: redGemID}},
+		proto.GemColor_GemColorBlue:      {{id: blueGemID, objectiveDelta: unitStatsFromStats(stats.Stats{stats.Intellect: 1}, weights)}},
+		proto.GemColor_GemColorYellow:    {{id: yellowGemID, objectiveDelta: unitStatsFromStats(stats.Stats{stats.Intellect: 1}, weights)}},
+		proto.GemColor_GemColorPrismatic: {{id: redGemID, objectiveDelta: unitStatsFromStats(stats.Stats{stats.Intellect: 100}, weights)}},
 	}
 
 	if got := shouldForceSocketBonus(item, item.GemSockets, gemOptions, weights, []reforgeHardCap{{unitStat: stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSchoolHitPercentShadow), cap: 1}}, nil); got {

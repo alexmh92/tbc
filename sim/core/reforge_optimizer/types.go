@@ -31,6 +31,7 @@ type reforgeChoice struct {
 type reforgeGemChoice struct {
 	socketIdx int
 	gemID     int32
+	rawDelta  core.UnitStats
 }
 
 type reforgeGemOption struct {
@@ -38,6 +39,7 @@ type reforgeGemOption struct {
 	color           proto.GemColor
 	isJewelcrafting bool
 	unique          bool
+	rawDelta        core.UnitStats
 	objectiveDelta  core.UnitStats
 	score           float64
 	cappedStats     []stats.UnitStat
@@ -81,6 +83,7 @@ type reforgeOptimization struct {
 	hardCaps     []reforgeHardCap
 	softCaps     []reforgeSoftCap
 	slotChoices  []reforgeSlotChoices
+	statDeps     *stats.StatDependencyManager
 }
 
 type normalizedReforgeOptimizeConfig struct {
@@ -92,7 +95,9 @@ type reforgeSearchState struct {
 	request        *proto.ReforgeOptimizeRequest
 	baseRaid       *proto.Raid
 	baseEquipment  core.Equipment
+	baseGear       *proto.EquipmentSpec
 	capBaseStats   core.UnitStats
+	statDeps       *stats.StatDependencyManager
 	slots          []reforgeSlotChoices
 	weights        core.UnitStats
 	hardCaps       []reforgeHardCap
@@ -102,5 +107,5 @@ type reforgeSearchState struct {
 
 	// Pre-allocated per-solve working state — avoids repeated allocations across solver passes.
 	choiceVarIdx [][]int // reused across buildChoiceMIPModel calls
-	uniqueGemIDs []int32 // cached once; gem choices never change
+	uniqueGemIDs []int32
 }

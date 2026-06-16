@@ -56,7 +56,7 @@ func trySolveWithHiGHS(search *reforgeSearchState, signals simsignals.Signals) (
 	weights := search.weights
 	softCaps := cloneSoftCaps(search.softCaps)
 	statConstraints := make([]mipStatConstraint, 0, len(search.hardCaps)+len(search.softCaps))
-	constrainedStats := map[stats.UnitStat]bool{}
+	constrainedStats := make(map[stats.UnitStat]bool, len(search.hardCaps)+1)
 	maxPasses := max(1, 2*(len(search.hardCaps)+countSoftCapBreakpoints(search.softCaps)+1))
 	deadline := time.Now().Add(highsOptimizerTimeout(search))
 	debug := reforgeDebug(search)
@@ -91,6 +91,9 @@ func trySolveWithHiGHS(search *reforgeSearchState, signals simsignals.Signals) (
 			solveDuration = time.Since(solveStartedAt)
 		}
 		if err != nil || !ok {
+			if debug {
+				log.Printf("[reforgeOptimize] HiGHS pass=%d failure vars=%d constraints=%d err=%v", passIdx+1, len(model.variables), len(model.constraints), err)
+			}
 			return nil, 0, ok, err
 		}
 
@@ -105,7 +108,12 @@ func trySolveWithHiGHS(search *reforgeSearchState, signals simsignals.Signals) (
 		if !selectedChoicesValid(search, choices) {
 			return nil, 0, false, nil
 		}
-		delta := selectedChoicesModelDelta(choices)
+		objectiveDelta := selectedChoicesModelDelta(choices)
+		// Constraint evaluation must use the actual resolved stat delta (coefficient
+		// delta), not the weights-filtered objective delta. After a cap fires and
+		// zeroes a stat's weight, objectiveDelta excludes that stat's contribution,
+		// which would cause the cap tightening loop to spin forever.
+		coefficientDelta := selectedChoicesCoefficientDelta(choices)
 		var selectDuration time.Duration
 		if debug {
 			selectDuration = time.Since(selectStartedAt)
@@ -115,20 +123,36 @@ func trySolveWithHiGHS(search *reforgeSearchState, signals simsignals.Signals) (
 		if debug {
 			capStartedAt = time.Now()
 		}
-		updated, nextWeights, nextSoftCaps, nextStatConstraints := updateHiGHSCapPass(search, passIdx, delta, weights, softCaps, statConstraints, constrainedStats)
+		updated, nextWeights, nextSoftCaps, nextStatConstraints := updateHiGHSCapPass(search, passIdx, coefficientDelta, weights, softCaps, statConstraints, constrainedStats)
 		var capDuration time.Duration
 		if debug {
 			capDuration = time.Since(capStartedAt)
 			log.Printf("[reforgeOptimize] solver pass=%d vars=%d constraints=%d timings=model:%s solve:%s select:%s cap:%s total:%s", passIdx+1, len(model.variables), len(model.constraints), modelDuration, solveDuration, selectDuration, capDuration, time.Since(passStartedAt))
 		}
 		if !updated {
-			choices, delta = improveSelectedChoices(search, choices, delta)
-			score, ok := search.evaluate(delta)
+			choices, objectiveDelta = improveSelectedChoices(search, choices, objectiveDelta)
+			score, ok := search.evaluate(objectiveDelta)
 			return choices, score, ok, nil
 		}
+		prevConstraintCount := len(statConstraints)
 		weights = nextWeights
 		softCaps = nextSoftCaps
 		statConstraints = nextStatConstraints
+		// Rebuild slot choices whenever a new cap constraint is added.
+		// Adding a constraint means a hard cap or soft cap breakpoint just fired,
+		// which changes EP weights and which stats are capped — both affect
+		// shouldForceSocketBonus and cappedGemStats. Constraint-tightening passes
+		// update existing entries (no count change) and do not require a rebuild.
+		if len(statConstraints) > prevConstraintCount {
+			if newSlots, err := buildReforgeSlotChoices(search.request, search.baseRaid, search.baseGear, search.capBaseStats, weights, weights, search.hardCaps, softCaps, search.statDeps, statConstraints); err == nil {
+				search.slots = newSlots
+				search.uniqueGemIDs = buildUniqueGemLimitIDs(newSlots)
+				search.choiceVarIdx = make([][]int, len(newSlots))
+				for i, slot := range newSlots {
+					search.choiceVarIdx[i] = make([]int, len(slot.choices))
+				}
+			}
+		}
 	}
 
 	return nil, 0, false, fmt.Errorf("HiGHS optimizer reached cap refinement pass limit")
@@ -207,7 +231,7 @@ func sameReforgeChoice(left reforgeChoice, right reforgeChoice) bool {
 		return false
 	}
 	for idx := range left.gems {
-		if left.gems[idx] != right.gems[idx] {
+		if left.gems[idx].socketIdx != right.gems[idx].socketIdx || left.gems[idx].gemID != right.gems[idx].gemID {
 			return false
 		}
 	}
@@ -337,7 +361,7 @@ func buildChoiceMIPModel(search *reforgeSearchState, weights core.UnitStats, sta
 
 	addMetaGemActivationConstraints(search, choiceVarIdx, &model)
 	for _, statConstraint := range statConstraints {
-		constraint := newMIPConstraint(statConstraint.lower, statConstraint.upper, 0)
+		constraint := newMIPConstraint(statConstraint.lower, statConstraint.upper, variableCount)
 		for slotIdx, slot := range search.slots {
 			for choiceIdx, choice := range slot.choices {
 				if choiceVarIdx[slotIdx][choiceIdx] < 0 {
@@ -515,14 +539,14 @@ func addMetaGemActivationConstraints(search *reforgeSearchState, choiceVarIdx []
 				}
 				coefficient := 0.0
 				for _, gemChoice := range choice.gems {
-					selectedGem, ok := core.GemsByID[gemChoice.gemID]
+					selectedGem, ok := core.GetGemByID(gemChoice.gemID)
 					if !ok || selectedGem.ID == 0 {
 						continue
 					}
 					baseGem := gemIDAt(search.baseEquipment.GetItemBySlot(choice.slot), gemChoice.socketIdx)
 					baseGemColor := proto.GemColor_GemColorUnknown
 					if baseGem != 0 {
-						if gem, ok := core.GemsByID[baseGem]; ok {
+						if gem, ok := core.GetGemByID(baseGem); ok {
 							baseGemColor = gem.Color
 						}
 					}
@@ -561,14 +585,14 @@ func addMetaGemActivationConstraints(search *reforgeSearchState, choiceVarIdx []
 				}
 				coefficient := 0.0
 				for _, gemChoice := range choice.gems {
-					selectedGem, ok := core.GemsByID[gemChoice.gemID]
+					selectedGem, ok := core.GetGemByID(gemChoice.gemID)
 					if !ok || selectedGem.ID == 0 {
 						continue
 					}
 					baseGem := gemIDAt(search.baseEquipment.GetItemBySlot(choice.slot), gemChoice.socketIdx)
 					baseGemColor := proto.GemColor_GemColorUnknown
 					if baseGem != 0 {
-						if gem, ok := core.GemsByID[baseGem]; ok {
+						if gem, ok := core.GetGemByID(baseGem); ok {
 							baseGemColor = gem.Color
 						}
 					}
@@ -760,7 +784,7 @@ func selectedChoicesMetaGemValid(search *reforgeSearchState, choices []reforgeCh
 	counts := metaGemColorCounts(search.baseEquipment)
 	for _, choice := range choices {
 		for _, gemChoice := range choice.gems {
-			gem, ok := core.GemsByID[gemChoice.gemID]
+			gem, ok := core.GetGemByID(gemChoice.gemID)
 			if !ok || gem.ID == 0 || gem.Color == proto.GemColor_GemColorMeta {
 				continue
 			}
@@ -792,6 +816,14 @@ func selectedChoicesModelDelta(choices []reforgeChoice) core.UnitStats {
 	total := core.NewUnitStats()
 	for _, choice := range choices {
 		total = addUnitStats(total, choiceObjectiveDelta(choice))
+	}
+	return total
+}
+
+func selectedChoicesCoefficientDelta(choices []reforgeChoice) core.UnitStats {
+	total := core.NewUnitStats()
+	for _, choice := range choices {
+		total = addUnitStats(total, choiceCoefficientDelta(choice))
 	}
 	return total
 }

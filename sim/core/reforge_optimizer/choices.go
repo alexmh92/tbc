@@ -2,27 +2,21 @@ package reforgeoptimizer
 
 import (
 	"cmp"
-	"context"
-	"fmt"
 	"math"
-	"runtime"
 	"slices"
-	"sync"
 
 	"github.com/wowsims/tbc/sim/core"
 	"github.com/wowsims/tbc/sim/core/proto"
-	"github.com/wowsims/tbc/sim/core/simsignals"
 	"github.com/wowsims/tbc/sim/core/stats"
-	googleProto "google.golang.org/protobuf/proto"
 )
 
-// Process-wide semaphore limiting concurrent choice-delta ComputeStats calls across optimizer requests.
-var reforgeChoiceDeltaTokens = make(chan struct{}, getReforgeChoiceDeltaConcurrency())
-
-func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *proto.Raid, baseGear *proto.EquipmentSpec, baseStats core.UnitStats, weights core.UnitStats, gemSortWeights core.UnitStats, hardCaps []reforgeHardCap, softCaps []reforgeSoftCap, signals simsignals.Signals) ([]reforgeSlotChoices, error) {
+func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *proto.Raid, baseGear *proto.EquipmentSpec, baseStats core.UnitStats, weights core.UnitStats, gemSortWeights core.UnitStats, hardCaps []reforgeHardCap, softCaps []reforgeSoftCap, statDeps *stats.StatDependencyManager, statConstraints []mipStatConstraint) ([]reforgeSlotChoices, error) {
 	frozenSlots := frozenItemSlots(request.GetSettings())
 	player := request.Raid.Parties[0].Players[0]
-	gemOptions := buildReforgeGemOptions(request, player, gemSortWeights, hardCaps, softCaps)
+	if statDeps == nil {
+		statDeps = core.ComputeStatDependencies(&proto.ComputeStatsRequest{Raid: baseRaid})
+	}
+	gemOptions := buildReforgeGemOptions(request, player, gemSortWeights, hardCaps, softCaps, statConstraints)
 	baseEquipment := core.ProtoToEquipment(baseGear)
 
 	allSlots := make([]reforgeSlotChoices, 0, int(core.NumItemSlots))
@@ -40,7 +34,7 @@ func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *pr
 		distributedSocketBonusObjectiveDelta := core.NewUnitStats()
 		if forceSocketBonus && socketBonusSocketCount > 0 {
 			distributedSocketBonus := item.SocketBonus.Multiply(1 / float64(socketBonusSocketCount))
-			distributedSocketBonusDelta = rawUnitStatsFromStats(distributedSocketBonus)
+			distributedSocketBonusDelta = resolveStatDelta(statDeps, baseStats, rawUnitStatsFromStats(distributedSocketBonus))
 			distributedSocketBonusObjectiveDelta = unitStatsFromStats(distributedSocketBonus, weights)
 		}
 		variableSocketIdxs := make([]int, 0, len(socketColors))
@@ -53,17 +47,13 @@ func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *pr
 				if !gemEligibleForSocket(gemOption.color, socketColor) {
 					return
 				}
-				gem, ok := core.GemsByID[gemOption.id]
-				if !ok {
-					return
-				}
 				choice := reforgeChoice{
 					slot:           slot,
-					gems:           []reforgeGemChoice{{socketIdx: socketIdx, gemID: gemOption.id}},
+					gems:           []reforgeGemChoice{{socketIdx: socketIdx, gemID: gemOption.id, rawDelta: gemOption.rawDelta}},
 					socketChoice:   true,
 					socketIdx:      socketIdx,
 					socketMatches:  gemMatchesSocket(gemOption.color, socketColor),
-					objectiveDelta: unitStatsFromStats(gem.Stats, weights),
+					objectiveDelta: gemOption.objectiveDelta,
 				}
 				if forceSocketBonus && choice.socketMatches {
 					choice.forcedBonusDelta = distributedSocketBonusDelta
@@ -84,7 +74,7 @@ func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *pr
 			}
 		}
 		if !forceSocketBonus && len(variableSocketIdxs) > 0 && hasSocketBonus(*item) {
-			socketBonusDelta := rawUnitStatsFromStats(item.SocketBonus)
+			socketBonusDelta := resolveStatDelta(statDeps, baseStats, rawUnitStatsFromStats(item.SocketBonus))
 			socketBonusObjectiveDelta := unitStatsFromStats(item.SocketBonus, weights)
 			allSlots = append(allSlots, reforgeSlotChoices{slot: slot, choices: []reforgeChoice{
 				{slot: slot, socketBonus: true},
@@ -93,9 +83,7 @@ func buildReforgeSlotChoices(request *proto.ReforgeOptimizeRequest, baseRaid *pr
 		}
 	}
 
-	if err := computeChoiceDeltas(baseRaid, baseGear, baseStats, allSlots, signals); err != nil {
-		return nil, err
-	}
+	computeChoiceDeltas(baseGear, allSlots, statDeps, baseStats)
 
 	slices.SortFunc(allSlots, func(a, b reforgeSlotChoices) int {
 		return cmp.Compare(maxChoiceScore(b.choices), maxChoiceScore(a.choices))
@@ -116,85 +104,30 @@ func allowedReforgeDestinationStats(weights *proto.UnitStats) map[stats.Stat]boo
 	return allowedStats
 }
 
-func computeChoiceDeltas(baseRaid *proto.Raid, baseGear *proto.EquipmentSpec, baseStats core.UnitStats, allSlots []reforgeSlotChoices, signals simsignals.Signals) error {
-	type job struct {
-		slotIdx   int
-		choiceIdx int
-	}
-
-	baseEquipment := core.ProtoToEquipment(baseGear)
-	jobs := make(chan job)
-	errChan := make(chan error, 1)
-	var wg sync.WaitGroup
-	workerCount := getReforgeChoiceDeltaConcurrency()
-
-	for range workerCount {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			raid := googleProto.Clone(baseRaid).(*proto.Raid)
-			statsRequest := &proto.ComputeStatsRequest{Raid: raid}
-			for job := range jobs {
-				if signals.Abort.IsTriggered() {
-					select {
-					case errChan <- context.Canceled:
-					default:
-					}
-					continue
-				}
-				choice := &allSlots[job.slotIdx].choices[job.choiceIdx]
-				if choice.socketBonus || len(choice.gems) == 0 || (len(choice.gems) == 1 && choice.gems[0].gemID == 0) {
-					continue
-				}
-
-				acquireReforgeChoiceDeltaToken()
-				gear := equipmentSpecWithChoice(baseEquipment, *choice)
-				raid.Parties[0].Players[0].Equipment = gear
-				result := computeReforgeStats(statsRequest)
-				if result.ErrorResult != "" {
-					releaseReforgeChoiceDeltaToken()
-					select {
-					case errChan <- fmt.Errorf("computing choice for slot %s: %s", choice.slot.String(), result.ErrorResult):
-					default:
-					}
-					continue
-				}
-
-				choice.delta = subtractUnitStats(protoToCoreUnitStats(result.RaidStats.Parties[0].Players[0].FinalStats), baseStats)
-				if !isEmptyUnitStats(choice.forcedBonusDelta) {
-					choice.delta = addUnitStats(choice.delta, choice.forcedBonusDelta)
-				}
-				releaseReforgeChoiceDeltaToken()
-			}
-		}()
-	}
-
+func computeChoiceDeltas(baseGear *proto.EquipmentSpec, allSlots []reforgeSlotChoices, sdm *stats.StatDependencyManager, baseStats core.UnitStats) {
 	for slotIdx := range allSlots {
 		for choiceIdx := range allSlots[slotIdx].choices {
-			jobs <- job{slotIdx: slotIdx, choiceIdx: choiceIdx}
+			choice := &allSlots[slotIdx].choices[choiceIdx]
+			if choice.socketBonus || len(choice.gems) == 0 || (len(choice.gems) == 1 && choice.gems[0].gemID == 0) {
+				continue
+			}
+			choice.delta = resolveStatDelta(sdm, baseStats, rawChoiceDelta(choice))
+			if !isEmptyUnitStats(choice.forcedBonusDelta) {
+				choice.delta = addUnitStats(choice.delta, choice.forcedBonusDelta)
+			}
 		}
 	}
-	close(jobs)
-	wg.Wait()
+}
 
-	select {
-	case err := <-errChan:
-		return err
-	default:
-		return nil
+func rawChoiceDelta(choice *reforgeChoice) core.UnitStats {
+	rawDelta := core.NewUnitStats()
+	for _, gemChoice := range choice.gems {
+		if gemChoice.gemID == 0 {
+			continue
+		}
+		rawDelta = addUnitStats(rawDelta, gemChoice.rawDelta)
 	}
-}
-
-func getReforgeChoiceDeltaConcurrency() int {
-	return max(1, runtime.NumCPU()/2)
-}
-
-func acquireReforgeChoiceDeltaToken() {
-	reforgeChoiceDeltaTokens <- struct{}{}
-}
-
-func releaseReforgeChoiceDeltaToken() {
-	<-reforgeChoiceDeltaTokens
+	return rawDelta
 }
 
 func equipmentSpecWithChoice(baseEquipment core.Equipment, choice reforgeChoice) *proto.EquipmentSpec {
@@ -258,18 +191,10 @@ func shouldForceSocketBonus(item core.Item, socketColors []proto.GemColor, gemOp
 			return false
 		}
 
-		matchedGem, ok := core.GemsByID[matchedOptions[0].id]
-		if !ok {
-			return false
-		}
-		matchedDelta = addUnitStats(matchedDelta, unitStatsFromStats(matchedGem.Stats, weights))
+		matchedDelta = addUnitStats(matchedDelta, matchedOptions[0].objectiveDelta)
 		matchedDelta = addUnitStats(matchedDelta, socketBonusDelta)
 
-		unmatchedGem, ok := core.GemsByID[unmatchedOptions[0].id]
-		if !ok {
-			return false
-		}
-		unmatchedDelta = addUnitStats(unmatchedDelta, unitStatsFromStats(unmatchedGem.Stats, weights))
+		unmatchedDelta = addUnitStats(unmatchedDelta, unmatchedOptions[0].objectiveDelta)
 	}
 
 	if dotUnitStats(matchedDelta, weights) > dotUnitStats(unmatchedDelta, weights) && (normalization > 1 || (includesStatWithCap(socketBonusDelta, hardCaps, softCaps) && !includesCappedStat(socketBonusDelta, hardCaps))) {

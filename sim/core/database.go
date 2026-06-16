@@ -21,17 +21,15 @@ var ItemEffectRandPropPointsByIlvl = map[int32]ItemEffectRandPropPoints{}
 var ConsumablesByID = map[int32]Consumable{}
 var SpellEffectsById = map[int32]*proto.SpellEffect{}
 
-var mutex = &sync.Mutex{}
+var dbMu sync.RWMutex
 
 func AddToDatabase(newDB *proto.SimDatabase) {
 	addToDatabase(newDB)
 }
 
 func addToDatabase(newDB *proto.SimDatabase) {
-	// create mutex lock here and lock it
-	// defer unlock it
-	mutex.Lock()
-	defer mutex.Unlock()
+	dbMu.Lock()
+	defer dbMu.Unlock()
 
 	for _, v := range newDB.Items {
 		if _, ok := ItemsByID[v.Id]; !ok {
@@ -386,10 +384,44 @@ func (equipment *Equipment) containsGemInSlot(itemID int32, slot proto.ItemSlot)
 }
 
 func GetEnchantByEffectID(effectID int32) *Enchant {
-	if enchant, ok := EnchantsByEffectID[effectID]; ok {
-		return &enchant
+	dbMu.RLock()
+	enchant, ok := EnchantsByEffectID[effectID]
+	dbMu.RUnlock()
+	if !ok {
+		return nil
 	}
-	return nil
+	return &enchant
+}
+
+func GetGemByID(id int32) (Gem, bool) {
+	dbMu.RLock()
+	gem, ok := GemsByID[id]
+	dbMu.RUnlock()
+	return gem, ok
+}
+
+func GetConsumableByID(id int32) Consumable {
+	dbMu.RLock()
+	c := ConsumablesByID[id]
+	dbMu.RUnlock()
+	return c
+}
+
+func GetSpellEffectByID(id int32) *proto.SpellEffect {
+	dbMu.RLock()
+	e := SpellEffectsById[id]
+	dbMu.RUnlock()
+	return e
+}
+
+func GetItemEffectRandPropPointsByIlvl(ilvl int32) *ItemEffectRandPropPoints {
+	dbMu.RLock()
+	p, ok := ItemEffectRandPropPointsByIlvl[ilvl]
+	dbMu.RUnlock()
+	if !ok {
+		return nil
+	}
+	return &p
 }
 
 func (equipment *Equipment) ToEquipmentSpecProto() *proto.EquipmentSpec {
@@ -570,10 +602,13 @@ func ItemEquipmentGemAndEnchantStats(item Item) stats.Stats {
 }
 
 func GetItemByID(id int32) *Item {
-	if item, ok := ItemsByID[id]; ok {
-		return &item
+	dbMu.RLock()
+	item, ok := ItemsByID[id]
+	dbMu.RUnlock()
+	if !ok {
+		return nil
 	}
-	return nil
+	return &item
 }
 
 func ItemTypeToSlot(it proto.ItemType) proto.ItemSlot {

@@ -8,6 +8,69 @@ import (
 	"github.com/wowsims/tbc/sim/core/stats"
 )
 
+// hasteRatingSpeedMultiplierPairs maps each (haste rating stat, haste% pseudo-stat) to its
+// speed multiplier pseudo-stat for the analytical haste delta calculation.
+// Δhaste% = speedMult × ΔHasteRating / HasteRatingPerHastePercent
+var hasteRatingSpeedMultiplierPairs = [3]struct {
+	hasteRatingStat  stats.Stat
+	hastePS          proto.PseudoStat
+	speedMultPS      proto.PseudoStat
+	hasteRatingConst float64
+}{
+	{stats.MeleeHasteRating, proto.PseudoStat_PseudoStatMeleeHastePercent, proto.PseudoStat_PseudoStatMeleeSpeedMultiplier, core.PhysicalHasteRatingPerHastePercent},
+	{stats.MeleeHasteRating, proto.PseudoStat_PseudoStatRangedHastePercent, proto.PseudoStat_PseudoStatRangedSpeedMultiplier, core.PhysicalHasteRatingPerHastePercent},
+	{stats.SpellHasteRating, proto.PseudoStat_PseudoStatSpellHastePercent, proto.PseudoStat_PseudoStatCastSpeedMultiplier, core.SpellHasteRatingPerHastePercent},
+}
+
+// resolveStatDelta applies the character's stat dependency graph to delta, resolving
+// conversions such as HitRating→Hit%, CritRating→Crit%, Agility→PhysicalCritPercent.
+// It also mirrors the resolved Stats values back to their corresponding PseudoStats
+// so that LP constraint evaluation (which reads PseudoStats for hit/crit/haste caps)
+// sees the correct contribution.
+//
+// Haste% is multiplicative with a speed multiplier that is not captured by the dep
+// manager. We read it from baseStats.PseudoStats (populated by GetPseudoStatsProto):
+//
+//	Δhaste% = speedMult × ΔHasteRating / HasteRatingPerHastePercent
+func resolveStatDelta(sdm *stats.StatDependencyManager, baseStats core.UnitStats, delta core.UnitStats) core.UnitStats {
+	if isEmptyUnitStats(delta) {
+		return delta
+	}
+	delta.Stats = sdm.ApplyStatDependencies(delta.Stats)
+
+	// Mirror dual-stored stats from Stats (updated by SDM — e.g. HitRating→Hit%,
+	// CritRating→Crit%, Agility→PhysicalCritPercent) back to their PseudoStat indices.
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatMeleeHitPercent), delta.Stats[stats.PhysicalHitPercent])
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellHitPercent), delta.Stats[stats.SpellHitPercent])
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatRangedHitPercent), delta.Stats[stats.PhysicalHitPercent]+delta.Stats[stats.RangedHitPercent])
+	spellHitDelta := delta.Stats[stats.SpellHitPercent]
+	for _, schoolHitPS := range []proto.PseudoStat{
+		proto.PseudoStat_PseudoStatSchoolHitPercentArcane,
+		proto.PseudoStat_PseudoStatSchoolHitPercentFire,
+		proto.PseudoStat_PseudoStatSchoolHitPercentFrost,
+		proto.PseudoStat_PseudoStatSchoolHitPercentHoly,
+		proto.PseudoStat_PseudoStatSchoolHitPercentNature,
+		proto.PseudoStat_PseudoStatSchoolHitPercentShadow,
+	} {
+		delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(schoolHitPS), spellHitDelta)
+	}
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatMeleeCritPercent), delta.Stats[stats.PhysicalCritPercent])
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatRangedCritPercent), delta.Stats[stats.PhysicalCritPercent]+delta.Stats[stats.RangedCritPercent])
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatSpellCritPercent), delta.Stats[stats.SpellCritPercent])
+	delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(proto.PseudoStat_PseudoStatBlockPercent), delta.Stats[stats.BlockPercent])
+
+	// Haste% pseudo-stats: read speed multipliers from baseStats.PseudoStats, which
+	// GetPseudoStatsProto populates as MeleeSpeedMultiplier×AttackSpeedMultiplier etc.
+	for _, p := range hasteRatingSpeedMultiplierPairs {
+		if hasteRatingDelta := delta.Stats[p.hasteRatingStat]; hasteRatingDelta != 0 {
+			speedMult := getUnitStat(baseStats, stats.UnitStatFromPseudoStat(p.speedMultPS))
+			delta = setUnitStat(delta, stats.UnitStatFromPseudoStat(p.hastePS), speedMult*hasteRatingDelta/p.hasteRatingConst)
+		}
+	}
+
+	return delta
+}
+
 func protoToCoreUnitStats(protoStats *proto.UnitStats) core.UnitStats {
 	if protoStats == nil {
 		return core.NewUnitStats()

@@ -133,7 +133,7 @@ func logSelectedChoices(requestID uint64, choices []reforgeChoice, weights core.
 }
 
 func logSelectedGemChoice(requestID uint64, choice reforgeChoice, gemChoice reforgeGemChoice, weights core.UnitStats) {
-	gem, ok := core.GemsByID[gemChoice.gemID]
+	gem, ok := core.GetGemByID(gemChoice.gemID)
 	if !ok || gem.ID == 0 {
 		log.Printf("[reforgeOptimize:%d] selected gem slot=%s socket=%d id=%d missing-from-db", requestID, choice.slot.String(), gemChoice.socketIdx, gemChoice.gemID)
 		return
