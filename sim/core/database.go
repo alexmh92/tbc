@@ -134,11 +134,13 @@ type Item struct {
 	SwingSpeed       float64
 	QualityModifier  float64 // Per-item offset to weapon "average damage"; negative for caster weapons.
 
-	Name    string
-	Stats   stats.Stats // Stats applied to wearer
-	Quality proto.ItemQuality
-	SetName string // Empty string if not part of a set.
-	SetID   int32  // 0 if not part of a set.
+	Name          string
+	Stats         stats.Stats // Stats applied to wearer
+	Quality       proto.ItemQuality
+	Unique        bool
+	LimitCategory int32
+	SetName       string // Empty string if not part of a set.
+	SetID         int32  // 0 if not part of a set.
 
 	GemSockets  []proto.GemColor
 	SocketBonus stats.Stats
@@ -168,6 +170,8 @@ func ItemFromProto(pData *proto.SimItem) Item {
 		QualityModifier:  pData.QualityModifier,
 		GemSockets:       pData.GemSockets,
 		SocketBonus:      stats.FromProtoArray(pData.SocketBonus),
+		Unique:           pData.Unique,
+		LimitCategory:    pData.LimitCategory,
 		SetName:          pData.SetName,
 		SetID:            pData.SetId,
 		ScalingOptions:   pData.ScalingOptions,
