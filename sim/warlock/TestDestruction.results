@@ -536,35 +536,7 @@ dps_results: {
  }
 }
 dps_results: {
- key: "TestDestruction-AllItems-FrostscytheofLordAhune-278952"
- value: {
-  dps: 1876.24353
-  tps: 1642.37572
- }
-}
-dps_results: {
  key: "TestDestruction-AllItems-FrostscytheofLordAhune-278953"
- value: {
-  dps: 1876.24353
-  tps: 1642.37572
- }
-}
-dps_results: {
- key: "TestDestruction-AllItems-FrostscytheofLordAhune-278954"
- value: {
-  dps: 1876.24353
-  tps: 1642.37572
- }
-}
-dps_results: {
- key: "TestDestruction-AllItems-FrostscytheofLordAhune-278955"
- value: {
-  dps: 1876.24353
-  tps: 1642.37572
- }
-}
-dps_results: {
- key: "TestDestruction-AllItems-FrostscytheofLordAhune-35514"
  value: {
   dps: 1876.24353
   tps: 1642.37572

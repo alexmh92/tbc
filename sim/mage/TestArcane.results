@@ -529,35 +529,7 @@ dps_results: {
  }
 }
 dps_results: {
- key: "TestArcane-AllItems-FrostscytheofLordAhune-278952"
- value: {
-  dps: 1944.82108
-  tps: 1315.80191
- }
-}
-dps_results: {
  key: "TestArcane-AllItems-FrostscytheofLordAhune-278953"
- value: {
-  dps: 1944.82108
-  tps: 1315.80191
- }
-}
-dps_results: {
- key: "TestArcane-AllItems-FrostscytheofLordAhune-278954"
- value: {
-  dps: 1944.82108
-  tps: 1315.80191
- }
-}
-dps_results: {
- key: "TestArcane-AllItems-FrostscytheofLordAhune-278955"
- value: {
-  dps: 1944.82108
-  tps: 1315.80191
- }
-}
-dps_results: {
- key: "TestArcane-AllItems-FrostscytheofLordAhune-35514"
  value: {
   dps: 1944.82108
   tps: 1315.80191

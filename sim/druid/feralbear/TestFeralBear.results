@@ -764,48 +764,12 @@ dps_results: {
  }
 }
 dps_results: {
- key: "TestFeralBear-AllItems-FrostscytheofLordAhune-278952"
- value: {
-  dps: 436.78239
-  tps: 673.95688
-  dtps: 1113.60006
-  hps: 76.68428
- }
-}
-dps_results: {
  key: "TestFeralBear-AllItems-FrostscytheofLordAhune-278953"
  value: {
   dps: 436.78239
   tps: 673.95688
   dtps: 1113.60006
   hps: 76.80815
- }
-}
-dps_results: {
- key: "TestFeralBear-AllItems-FrostscytheofLordAhune-278954"
- value: {
-  dps: 436.78239
-  tps: 673.95688
-  dtps: 1113.60006
-  hps: 77.11784
- }
-}
-dps_results: {
- key: "TestFeralBear-AllItems-FrostscytheofLordAhune-278955"
- value: {
-  dps: 436.78239
-  tps: 673.95688
-  dtps: 1113.60006
-  hps: 77.42752
- }
-}
-dps_results: {
- key: "TestFeralBear-AllItems-FrostscytheofLordAhune-35514"
- value: {
-  dps: 436.78239
-  tps: 673.95688
-  dtps: 1113.60006
-  hps: 76.62234
  }
 }
 dps_results: {

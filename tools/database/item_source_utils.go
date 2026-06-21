@@ -130,9 +130,7 @@ func InferPhase(item *proto.UIItem) int32 {
 		return 1
 	}
 
-	// SWP Mote Turn-ins, SWP Badge Armor, SWP Badge Weapons, Tranquil Moonlight Wraps (SWP Mote item but lower ilvl???)
-	// Also some new Ahune items at 154
-	if ilvl >= 159 || ilvl == 154 || ilvl == 141 || ilvl == 146 || ilvl == 135 || item.Id == 34407 {
+	if ilvl >= 159 || ilvl == 141 || ilvl == 146 || ilvl == 135 || item.Id == 34407 { // SWP Mote Turn-ins, SWP Badge Armor, SWP Badge Weapons, Tranquil Moonlight Wraps (SWP Mote item but lower ilvl???)
 		return 5
 	}
 
