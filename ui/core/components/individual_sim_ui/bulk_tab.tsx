@@ -13,7 +13,7 @@ import { Gear } from '../../proto_utils/gear';
 import { canEquipItem, getEligibleItemSlots, getGearKeyFromSpec, isSecondaryItemSlot } from '../../proto_utils/utils';
 import { RequestTypes } from '../../sim_signal_manager';
 import { TypedEvent } from '../../typed_event';
-import { formatDurationSeconds, getEnumValues, isExternal } from '../../utils';
+import { formatDurationSeconds, formatToNumber, getEnumValues, isExternal } from '../../utils';
 import { isSpecDualWieldCapable } from '../../player_classes/capabilities';
 import SelectorModal from '../gear_picker/selector_modal';
 import { SimTab } from '../sim_tab';
@@ -829,10 +829,10 @@ export class BulkTab extends SimTab {
 				<span className={clsx(this.showIterationsWarning() && 'text-danger')}>
 					{this.combinations === 1
 						? i18n.t('bulk_tab.settings.combination_singular')
-						: i18n.t('bulk_tab.settings.combinations_count', { count: this.combinations })}
+						: i18n.t('bulk_tab.settings.combinations_count', { amount: formatToNumber(this.combinations) })}
 					<br />
 					<small>
-						{this.iterations} {i18n.t('bulk_tab.settings.iterations')}
+						{formatToNumber(this.iterations)} {i18n.t('bulk_tab.settings.iterations')}
 					</small>
 				</span>
 				{this.showIterationsWarning() && (
@@ -845,7 +845,7 @@ export class BulkTab extends SimTab {
 
 		if (warningRef.value) {
 			tippy(warningRef.value, {
-				content: i18n.t('bulk_tab.warning.iterations_limit', { limit: this.getIterationsLimit() }),
+				content: i18n.t('bulk_tab.warning.iterations_limit', { limit: formatToNumber(this.getIterationsLimit()) }),
 				placement: 'left',
 				popperOptions: {
 					modifiers: [
