@@ -2361,7 +2361,7 @@
 				"enable_modification": "This will enable modification of the default EP weights and setting custom stat caps.",
 				"modify_in_editor": "Ep weights can be modified in the Stat Weights editor.",
 				"hard_cap_info": "If you want to hard cap a stat make sure to put the EP for that stat higher.",
-				"edit_weights": "Edit weights",
+				"edit_weights": "Change weights",
 				"freeze_item_slots": "Freeze item slots",
 				"max_gem_phase": "Max Gem Phase",
 				"max_gem_quality": "Max Gem Quality",

@@ -624,7 +624,7 @@ export class ReforgeOptimizer {
 						{maxGemQualityInput.rootElem}
 						{freezeItemSlotsInput.rootElem}
 						{this.buildFrozenSlotsInputs()}
-						{this.buildEPWeightsToggle({ useCustomEPValuesInput: useCustomEPValuesInput })}
+						{this.buildEPWeightsToggle()}
 					</>,
 				);
 			},
@@ -854,24 +854,11 @@ export class ReforgeOptimizer {
 		return content;
 	}
 
-	buildEPWeightsToggle({ useCustomEPValuesInput }: { useCustomEPValuesInput: BooleanPicker<Player<any>> }) {
-		const extraCssClasses = ['mt-3'];
-		if (!this.useCustomEPValues) extraCssClasses.push('hide');
-		const savedEpWeights = renderSavedEPWeights(null, this.simUI, { extraCssClasses, loadOnly: true });
-		const event = this.useCustomEPValuesChangeEmitter.on(() => {
-			const isUsingCustomEPValues = this.useCustomEPValues;
-			savedEpWeights.rootElem?.classList[isUsingCustomEPValues ? 'remove' : 'add']('hide');
-		});
-
-		useCustomEPValuesInput.addOnDisposeCallback(() => {
-			savedEpWeights.dispose();
-			savedEpWeights.rootElem.remove();
-			event.dispose();
-		});
-
-		return (
+	buildEPWeightsToggle() {
+		const epWeightsContainerRef = ref<HTMLDivElement>();
+		const content = (
 			<>
-				{savedEpWeights.rootElem}
+				<div ref={epWeightsContainerRef} />
 				{this.simUI.epWeightsModal && (
 					<button
 						className="btn btn-outline-primary mt-2"
@@ -884,6 +871,23 @@ export class ReforgeOptimizer {
 				)}
 			</>
 		);
+
+		const render = () => {
+			const container = epWeightsContainerRef.value;
+			if (container) {
+				const epPicker = renderSavedEPWeights(null, this.simUI, {
+					extraCssClasses: ['mt-3'],
+					loadOnly: true,
+					presetsOnly: !this.useCustomEPValues,
+				});
+				container.replaceChildren(epPicker.rootElem);
+			}
+		};
+
+		this.useCustomEPValuesChangeEmitter.on(() => render());
+		render();
+
+		return content;
 	}
 
 	buildSoftCapBreakpointsLimiter({ useSoftCapBreakpointsInput }: { useSoftCapBreakpointsInput: BooleanPicker<Player<any>> | null }) {
@@ -1075,10 +1079,7 @@ export class ReforgeOptimizer {
 			partyBuffs: this.player.getParty()?.getBuffs(),
 			debuffs: this.sim.raid.getDebuffs(),
 		});
-		const frozenItemSlots =
-			config.settings.freezeItemSlots && config.settings.frozenItemSlots.length
-				? config.settings.frozenItemSlots
-				: undefined;
+		const frozenItemSlots = config.settings.freezeItemSlots && config.settings.frozenItemSlots.length ? config.settings.frozenItemSlots : undefined;
 		const cacheKey = await ReforgeGearCache.getKey(getGearKeyFromSpec(previousGear.asSpec(), frozenItemSlots), configHash);
 		const cachedGear = await cache.get(cacheKey);
 		if (cachedGear) {
