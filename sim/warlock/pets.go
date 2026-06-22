@@ -279,7 +279,7 @@ func (pet *WarlockPet) OnEncounterStart(_ *core.Simulation) {
 }
 
 func (pet *WarlockPet) ExecuteCustomRotation(sim *core.Simulation) {
-	waitUntil := time.Duration(1<<63 - 1)
+	waitUntil := time.Duration(0)
 
 	for _, spell := range pet.AutoCastAbilities {
 		if spell.CanCast(sim, pet.CurrentTarget) && pet.CurrentMana() > pet.MinMana {
@@ -289,8 +289,11 @@ func (pet *WarlockPet) ExecuteCustomRotation(sim *core.Simulation) {
 
 		// calculate energy required
 		cost := max(pet.MinMana, spell.Cost.GetCurrentCost())
-		timeTillMana := max(0, (cost-pet.CurrentMana())/pet.ManaRegenPerSecondWhileCasting())
-		waitUntil = min(waitUntil, time.Duration(float64(time.Second)*timeTillMana))
+		regen := pet.ManaRegenPerSecondWhileCasting()
+		if regen > 0 {
+			timeTillMana := max(0, (cost-pet.CurrentMana())/regen)
+			waitUntil = min(waitUntil, time.Duration(float64(time.Second)*timeTillMana))
+		}
 	}
 
 	// for now average the delay out to 100 ms so we don't need to roll random every time
