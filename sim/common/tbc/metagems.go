@@ -68,16 +68,13 @@ func init() {
 		manaMetrics := character.NewManaMetrics(core.ActionID{SpellID: 32848})
 
 		character.MakeProcTriggerAura(core.ProcTrigger{
-			Name:       "Insightful Earthstorm Diamond",
-			ActionID:   core.ActionID{SpellID: 27521},
-			ProcMask:   core.ProcMaskSpellDamage | core.ProcMaskSpellHealing,
-			ProcChance: 0.05,
-			ICD:        time.Second * 15,
-			Callback:   core.CallbackOnCastComplete,
-			// Only Proc From Class Abilities
-			ExtraCondition: func(_ *core.Simulation, spell *core.Spell, _ *core.SpellResult) bool {
-				return spell.ClassSpellMask > 0
-			},
+			Name:            "Insightful Earthstorm Diamond",
+			ActionID:        core.ActionID{SpellID: 27521},
+			ProcMask:        core.ProcMaskSpellDamage | core.ProcMaskSpellHealing,
+			ProcChance:      0.05,
+			ICD:             time.Second * 15,
+			Callback:        core.CallbackOnCastComplete,
+			ClassSpellsOnly: true,
 			Handler: func(sim *core.Simulation, _ *core.Spell, _ *core.SpellResult) {
 				character.AddMana(sim, 300, manaMetrics)
 			},
