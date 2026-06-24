@@ -10,8 +10,8 @@ import P1BISGear from './gear_sets/p1_bis.gear.json';
 import P2BISGear from './gear_sets/p2_bis.gear.json';
 import P2HydrossGear from './gear_sets/p2_hydross.gear.json';
 import P3BISGear from './gear_sets/p3_bis.gear.json';
-import P35BISGear from './gear_sets/p35_bis.gear.json';
 import P4BISGear from './gear_sets/p4_bis.gear.json';
+import P5BISGear from './gear_sets/p5_bis.gear.json';
 import PreraidBISGear from './gear_sets/preraid.gear.json';
 import DefaultBuild from './builds/default_encounter_only.build.json';
 import MagtheridonBuild from './builds/magtheridon_encounter_only.build.json';
@@ -28,8 +28,8 @@ export const P1_PRESET = PresetUtils.makePresetGear('P1 - BIS', P1BISGear, { gro
 export const P2_PRESET = PresetUtils.makePresetGear('P2 - BIS', P2BISGear, { group: 'Default' });
 export const P2_HYDROSS_PRESET = PresetUtils.makePresetGear('P2 - Hydross (Frost Resist)', P2HydrossGear, { group: 'Encounter specific' });
 export const P3_PRESET = PresetUtils.makePresetGear('P3 - BIS', P3BISGear, { group: 'Default' });
-export const P35_PRESET = PresetUtils.makePresetGear('P3.5 - BIS', P35BISGear, { group: 'Default' });
 export const P4_PRESET = PresetUtils.makePresetGear('P4 - BIS', P4BISGear, { group: 'Default' });
+export const P5_PRESET = PresetUtils.makePresetGear('P5 - BIS', P5BISGear, { group: 'Default' });
 
 export const ROTATION_DEFAULT = PresetUtils.makePresetAPLRotation('Generic', GenericApl);
 

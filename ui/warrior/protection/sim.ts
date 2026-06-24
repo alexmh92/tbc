@@ -169,8 +169,8 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionWarrior, {
 			Presets.P2_PRESET,
 			Presets.P2_HYDROSS_PRESET,
 			Presets.P3_PRESET,
-			Presets.P35_PRESET,
 			Presets.P4_PRESET,
+			Presets.P5_PRESET,
 		],
 		builds: [
 			Presets.DEFAULT_PRESET_BUILD,
