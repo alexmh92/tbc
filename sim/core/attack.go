@@ -710,7 +710,13 @@ func (aa *AutoAttacks) EnableMeleeSwing(sim *Simulation) {
 	}
 
 	if aa.IsDualWielding && !aa.oh.enabled {
-		aa.oh.swingAt = max(aa.oh.swingAt, sim.CurrentTime, 0)
+		var offset time.Duration
+		// When entering melee range from ranged, the offhand will start at half the swing duration
+		if aa.AutoSwingRanged {
+			aa.oh.updateSwingDuration(aa.oh.unit.TotalMeleeHasteMultiplier())
+			offset = aa.oh.curSwingDuration / 2
+		}
+		aa.oh.swingAt = max(aa.oh.swingAt, sim.CurrentTime+offset, 0)
 		if aa.oh.IsInRange() {
 			aa.oh.enabled = true
 			aa.oh.addWeaponAttack(sim, aa.oh.unit.TotalMeleeHasteMultiplier())

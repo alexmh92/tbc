@@ -335,9 +335,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-Blinkstrike-31332"
  value: {
-  dps: 3479.35574
-  tps: 2455.71671
-  dtps: 13.63573
+  dps: 3492.59275
+  tps: 2460.87622
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -495,17 +495,17 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-Despair-28573"
  value: {
-  dps: 3686.27704
-  tps: 2655.79576
-  dtps: 12.99557
+  dps: 3499.64315
+  tps: 2468.91664
+  dtps: 13.36878
  }
 }
 dps_results: {
  key: "TestHunter-AllItems-Devastation-30316"
  value: {
-  dps: 4010.97359
-  tps: 2987.4959
-  dtps: 12.98294
+  dps: 3614.62002
+  tps: 2572.56875
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -719,9 +719,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-FrostscytheofLordAhune-278953"
  value: {
-  dps: 3627.30808
-  tps: 2594.90705
-  dtps: 13.08708
+  dps: 3494.06931
+  tps: 2462.97725
+  dtps: 13.57813
  }
 }
 dps_results: {
@@ -831,9 +831,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-Heartrazor-29962"
  value: {
-  dps: 3629.89122
-  tps: 2612.49505
-  dtps: 13.90536
+  dps: 3520.38267
+  tps: 2483.25407
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -911,9 +911,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-InfinityBlade-30312"
  value: {
-  dps: 3650.25387
-  tps: 2618.24229
-  dtps: 13.62761
+  dps: 3557.99319
+  tps: 2514.79178
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -951,17 +951,17 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-LionheartChampion-28429"
  value: {
-  dps: 3766.59123
-  tps: 2749.68679
-  dtps: 13.18348
+  dps: 3554.31654
+  tps: 2513.58472
+  dtps: 13.36878
  }
 }
 dps_results: {
  key: "TestHunter-AllItems-LionheartExecutioner-28430"
  value: {
-  dps: 3771.20078
-  tps: 2754.30405
-  dtps: 13.18348
+  dps: 3554.6414
+  tps: 2513.90958
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -1368,9 +1368,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-StaffoftheQirajiProphets-21128"
  value: {
-  dps: 3496.21143
-  tps: 2459.12944
-  dtps: 13.34966
+  dps: 3493.43534
+  tps: 2461.72323
+  dtps: 13.28082
  }
 }
 dps_results: {
@@ -1488,9 +1488,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-TheNightBlade-31331"
  value: {
-  dps: 3598.46202
-  tps: 2584.63053
-  dtps: 13.90536
+  dps: 3493.48251
+  tps: 2461.80401
+  dtps: 13.36878
  }
 }
 dps_results: {
@@ -1512,9 +1512,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-TheTwinBladesofAzzinoth"
  value: {
-  dps: 3303.75767
-  tps: 2272.87027
-  dtps: 13.21539
+  dps: 3353.91073
+  tps: 2333.35606
+  dtps: 13.4964
  }
 }
 dps_results: {
@@ -1536,9 +1536,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-Thunderfury,BlessedBladeoftheWindseeker-19019"
  value: {
-  dps: 3551.84466
-  tps: 2527.09191
-  dtps: 13.45861
+  dps: 3504.88698
+  tps: 2469.77599
+  dtps: 13.24537
  }
 }
 dps_results: {
@@ -1592,9 +1592,9 @@ dps_results: {
 dps_results: {
  key: "TestHunter-AllItems-WarpSlicer-30311"
  value: {
-  dps: 3768.66074
-  tps: 2730.73723
-  dtps: 13.3762
+  dps: 3557.92962
+  tps: 2514.67753
+  dtps: 13.36878
  }
 }
 dps_results: {
