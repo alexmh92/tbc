@@ -907,7 +907,7 @@
 		},
 		"progress": {
 			"total_combinations": "{{count}} total combinations.",
-			"reforging_rounds": "Running reforges",
+			"reforging_rounds": "Optimizing gems",
 			"baseline_round": "Running baseline round",
 			"refining_rounds": "Running refining rounds",
 			"iterations_complete": "{{completed}} / {{total}}<br />iterations complete",
