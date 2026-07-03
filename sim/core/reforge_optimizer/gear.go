@@ -111,16 +111,44 @@ func (editor *reforgeGearEditor) minimizeRegems() {
 	}
 
 	// If the optimizer only permuted gems (same total multiset), restore all
-	// non-meta gems to their original sockets.  This handles arbitrary-length
-	// permutation cycles without needing cycle decomposition.
+	// non-meta gems to their original sockets — the player doesn't need to buy
+	// anything, and we minimize physical gem swaps.
+	// Exception: if the LP improved any socket's color matching (e.g. moved an
+	// orange gem into a Yellow socket where the original had a non-matching Red),
+	// keep the LP's full arrangement.  Partial restore would break multiset
+	// consistency and undo the LP's intentional improvement.
 	if editor.nonMetaGemMultisetUnchanged() {
 		for slotIdx := range editor.gear {
 			newItem := &editor.gear[slotIdx]
 			originalItem := &editor.originalGear[slotIdx]
-			if newItem.ID == 0 || originalItem.ID == 0 {
+			if newItem.ID == 0 || originalItem.ID == 0 || editor.frozenSlots[proto.ItemSlot(slotIdx)] {
 				continue
 			}
-			if editor.frozenSlots[proto.ItemSlot(slotIdx)] {
+			for socketIdx, socketColor := range currentSocketColors(*newItem) {
+				if socketColor == proto.GemColor_GemColorMeta {
+					continue
+				}
+				newGemID := gemIDAt(newItem, socketIdx)
+				originalGemID := gemIDAt(originalItem, socketIdx)
+				if newGemID == originalGemID {
+					continue
+				}
+				newGem, newOk := core.GetGemByID(newGemID)
+				originalGem, origOk := core.GetGemByID(originalGemID)
+				if !newOk || !origOk {
+					continue
+				}
+				if gemMatchesSocket(newGem.Color, socketColor) && !gemMatchesSocket(originalGem.Color, socketColor) {
+					// LP placed a color-matching gem where original had a non-matching one.
+					// Keep the LP's full arrangement to preserve the improvement.
+					return
+				}
+			}
+		}
+		for slotIdx := range editor.gear {
+			newItem := &editor.gear[slotIdx]
+			originalItem := &editor.originalGear[slotIdx]
+			if newItem.ID == 0 || originalItem.ID == 0 || editor.frozenSlots[proto.ItemSlot(slotIdx)] {
 				continue
 			}
 			for socketIdx, socketColor := range currentSocketColors(*newItem) {
