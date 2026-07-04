@@ -9378,6 +9378,9 @@
         "warnings": {
           "type": "object",
           "properties": {
+            "custom_ep_not_enabled": {
+              "type": "string"
+            },
             "meta_gem_disabled": {
               "type": "string"
             },
@@ -9393,6 +9396,7 @@
           },
           "additionalProperties": false,
           "required": [
+            "custom_ep_not_enabled",
             "meta_gem_disabled",
             "profession_requirement",
             "too_many_jc_gems",

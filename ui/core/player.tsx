@@ -707,6 +707,15 @@ export class Player<SpecType extends Spec> {
 	setGear(eventID: EventID, newGear: Gear, forceUpdate?: boolean) {
 		if (newGear.equals(this.gear) && !forceUpdate) return;
 		this.gear = newGear;
+
+		// Adjust weapon stone imbues before emitting, so that any gearChangeEmitter listener
+		// (including pickers that auto-clear now-invalid selections) sees the corrected value.
+		const adjustedConsumes = this.gear.adjustImbues(this.consumables);
+		if (adjustedConsumes !== this.consumables) {
+			this.consumables = adjustedConsumes;
+			this.consumesChangeEmitter.emit(eventID);
+		}
+
 		this.gearChangeEmitter.emit(eventID);
 	}
 
