@@ -515,6 +515,7 @@ func runSingleBulkSimWithProgressAndSeedOffset(request *proto.BulkSimRequest, ca
 		return &BulkSimCandidateResult{Candidate: candidate, Error: &proto.ErrorOutcome{Message: err}}
 	}
 	player.Equipment = googleProto.Clone(candidate.Gear).(*proto.EquipmentSpec)
+	adjustCandidateImbues(player)
 
 	var simProgress chan *proto.ProgressMetrics
 	var progressWg sync.WaitGroup
@@ -550,6 +551,74 @@ func runSingleBulkSimWithProgressAndSeedOffset(request *proto.BulkSimRequest, ca
 		Candidate:  candidate,
 		DpsMetrics: cleanBulkSimDpsMetrics(simResult.RaidMetrics.Dps),
 	}
+}
+
+const (
+	adamantiteSharpeningStoneID int32 = 29453
+	adamantiteWeightstoneID     int32 = 34340
+)
+
+func isSharpWeaponType(wt proto.WeaponType) bool {
+	switch wt {
+	case proto.WeaponType_WeaponTypeAxe, proto.WeaponType_WeaponTypeDagger, proto.WeaponType_WeaponTypePolearm, proto.WeaponType_WeaponTypeSword:
+		return true
+	default:
+		return false
+	}
+}
+
+func isBluntWeaponType(wt proto.WeaponType) bool {
+	switch wt {
+	case proto.WeaponType_WeaponTypeFist, proto.WeaponType_WeaponTypeMace, proto.WeaponType_WeaponTypeStaff:
+		return true
+	default:
+		return false
+	}
+}
+
+// adjustWeaponImbueID rewrites the Adamantite sharpening/weightstone pair to match the equipped
+// weapon type; all other imbue ids pass through unchanged. Returns 0 when neither stone family is
+// valid for the weapon (no weapon, or a shield / offhand-only item).
+func adjustWeaponImbueID(imbueID int32, weapon *proto.ItemSpec) int32 {
+	if imbueID != adamantiteSharpeningStoneID && imbueID != adamantiteWeightstoneID {
+		return imbueID
+	}
+	if weapon == nil || weapon.Id == 0 {
+		return 0
+	}
+	item := core.GetItemByID(weapon.Id)
+	if item == nil {
+		return 0
+	}
+	if isSharpWeaponType(item.WeaponType) {
+		return adamantiteSharpeningStoneID
+	}
+	if isBluntWeaponType(item.WeaponType) {
+		return adamantiteWeightstoneID
+	}
+	return 0
+}
+
+// adjustCandidateImbues keeps the MH/OH weapon stone imbues in sync with the candidate's equipped
+// weapon types, mirroring the frontend auto-switch so bulk sim combos use the correct stone.
+func adjustCandidateImbues(player *proto.Player) {
+	consumables := player.GetConsumables()
+	if consumables == nil {
+		return
+	}
+	if consumables.MhImbueId == 0 && consumables.OhImbueId == 0 {
+		return
+	}
+	items := player.GetEquipment().GetItems()
+	var mhWeapon, ohWeapon *proto.ItemSpec
+	if int(proto.ItemSlot_ItemSlotMainHand) < len(items) {
+		mhWeapon = items[proto.ItemSlot_ItemSlotMainHand]
+	}
+	if int(proto.ItemSlot_ItemSlotOffHand) < len(items) {
+		ohWeapon = items[proto.ItemSlot_ItemSlotOffHand]
+	}
+	consumables.MhImbueId = adjustWeaponImbueID(consumables.MhImbueId, mhWeapon)
+	consumables.OhImbueId = adjustWeaponImbueID(consumables.OhImbueId, ohWeapon)
 }
 
 func getBulkSimPlayer(raid *proto.Raid) (*proto.Player, string) {

@@ -37,7 +37,12 @@ export default class BulkItemPickerGroup extends ContentBlock {
 
 		// Block duplicate items from being added.
 		const pickers = Array.from(this.pickers.values());
-		const maxCopies = this.bulkSlot == BulkSimItemSlot.ItemSlotHandWeapon ? 2 : 1;
+		// Slots that map to two physical equipment slots can hold two copies of a non-unique item.
+		const isDualSlot =
+			this.bulkSlot == BulkSimItemSlot.ItemSlotHandWeapon ||
+			this.bulkSlot == BulkSimItemSlot.ItemSlotFinger ||
+			this.bulkSlot == BulkSimItemSlot.ItemSlotTrinket;
+		const maxCopies = isDualSlot && !item._item.unique ? 2 : 1;
 		const hasDuplicateLimitCategory = pickers.some(
 			picker => picker.item._item.limitCategory != 0 && picker.item._item.limitCategory === item._item.limitCategory,
 		);

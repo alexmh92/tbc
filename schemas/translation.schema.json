@@ -7892,10 +7892,13 @@
 						},
 						"unspent_talent_points": {
 							"type": "string"
+						},
+						"custom_ep_not_enabled": {
+							"type": "string"
 						}
 					},
 					"additionalProperties": false,
-					"required": ["meta_gem_disabled", "profession_requirement", "too_many_jc_gems", "unspent_talent_points"]
+					"required": ["meta_gem_disabled", "profession_requirement", "too_many_jc_gems", "unspent_talent_points", "custom_ep_not_enabled"]
 				},
 				"buttons": {
 					"type": "object",

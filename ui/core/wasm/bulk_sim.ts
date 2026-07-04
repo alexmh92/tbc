@@ -17,6 +17,7 @@ import {
 	ReforgeOptimizeRequest,
 } from '../proto/api';
 import { EquipmentSpec } from '../proto/common';
+import { Database } from '../proto_utils/database';
 import { SimSignals } from '../sim_signal_manager';
 import { isDevMode, noop } from '../utils';
 import { WorkerPool, WorkerProgressCallback } from '../worker_pool';
@@ -502,7 +503,13 @@ const makeBulkSimRequestForCandidate = (request: BulkSimRequest, candidate: Conc
 	simRequest.simOptions!.randomSeed += BigInt(seedOffset);
 	simRequest.simOptions!.debugFirstIteration = false;
 	simRequest.simOptions!.debug = false;
-	simRequest.raid!.parties[0].players[0].equipment = candidate.gear;
+	const player = simRequest.raid!.parties[0].players[0];
+	player.equipment = candidate.gear;
+	// Keep weapon stone imbues in sync with this candidate's weapon types, mirroring the
+	// frontend auto-switch so bulk combos use the correct stone (or none).
+	if (player.consumables && candidate.gear) {
+		player.consumables = Database.getSync().lookupEquipmentSpec(candidate.gear).adjustImbues(player.consumables);
+	}
 	return simRequest;
 };
 

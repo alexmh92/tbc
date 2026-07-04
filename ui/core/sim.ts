@@ -708,6 +708,7 @@ export class Sim {
 
 			player.database = gear.toDatabase(this.db);
 			player.equipment = gear.asSpec();
+			if (player.consumables) player.consumables = gear.adjustImbues(player.consumables);
 
 			request.raid!.parties[0].players[0] = player;
 

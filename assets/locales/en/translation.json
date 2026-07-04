@@ -2240,7 +2240,8 @@
 			"meta_gem_disabled": "Meta gem disabled ({{gemName}}): {{description}}",
 			"profession_requirement": "{{itemName}} requires {{professionName}}, but it is not selected.",
 			"too_many_jc_gems": "Only 2 Jewelcrafting Gems are allowed, but {{count}} are equipped.",
-			"unspent_talent_points": "You have {{count}} unspent talent point(s)."
+			"unspent_talent_points": "You have {{count}} unspent talent point(s).",
+			"custom_ep_not_enabled": "Detected custom EPs. Enable \"Use custom EP Weights\" in the Suggest Gems settings to use them for gemming."
 		},
 		"buttons": {
 			"simulate": "Simulate",

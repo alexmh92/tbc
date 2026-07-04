@@ -31,6 +31,7 @@ func ScanRawItemData(rows *sql.Rows) (dbc.Item, error) {
 	var statValue string
 	var socketTypes string
 	var statPercentEditor string
+	var maxCount int
 	err := rows.Scan(
 		&raw.Id,
 		&raw.Name,
@@ -67,6 +68,7 @@ func ScanRawItemData(rows *sql.Rows) (dbc.Item, error) {
 		&raw.NameDescription,
 		&raw.LimitCategory,
 		&raw.Bonding,
+		&maxCount,
 	)
 	if err != nil {
 		panic(err)
@@ -100,6 +102,12 @@ func ScanRawItemData(rows *sql.Rows) (dbc.Item, error) {
 	raw.SocketModifier, err = parseFloatArrayField(statPercentEditor, 10)
 	if err != nil {
 		return raw, fmt.Errorf("failed to parse SocketModifier: %w", err)
+	}
+	// MaxCount identifies that an item is unique
+	// this is not the same as unique-equipped but
+	// we can use this to identify items that are unique in the database
+	if maxCount > 0 {
+		raw.Flags0 |= dbc.UNIQUE_EQUIPPABLE
 	}
 	return raw, err
 }
@@ -145,7 +153,8 @@ func LoadAndWriteRawItems(dbHelper *DBHelper, filter string, inputsDir string) (
 			 i.SubClassID,
 			 COALESCE(ind.Description_lang, ''),
 			s.LimitCategory,
-			s.Bonding
+			s.Bonding,
+			COALESCE(s.MaxCount, 0) as MaxCount
 		FROM Item i
 		JOIN ItemSparse s ON i.ID = s.ID
 		JOIN ItemClass ic ON i.ClassID = ic.ClassID
