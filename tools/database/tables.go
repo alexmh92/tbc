@@ -168,7 +168,16 @@ func LoadAndWriteRawItems(dbHelper *DBHelper, filter string, inputsDir string) (
 		`
 
 	if strings.TrimSpace(filter) != "" {
-		baseQuery += " WHERE " + filter
+		// Items in the allowlist always bypass the filter.
+		allowListIDs := make([]string, 0, len(ItemAllowList))
+		for id := range ItemAllowList {
+			allowListIDs = append(allowListIDs, strconv.Itoa(int(id)))
+		}
+		slices.Sort(allowListIDs)
+		baseQuery += " WHERE (" + filter + ")"
+		if len(allowListIDs) > 0 {
+			baseQuery += " OR i.ID IN (" + strings.Join(allowListIDs, ",") + ")"
+		}
 	}
 
 	items, err := LoadRows(dbHelper.db, baseQuery, ScanRawItemData)
