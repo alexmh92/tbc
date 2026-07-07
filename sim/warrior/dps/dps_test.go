@@ -29,6 +29,8 @@ func TestDpsWarrior(t *testing.T) {
 				core.GetGearSet("../../../ui/warrior/dps/gear_sets", "p3_arms"),
 				core.GetGearSet("../../../ui/warrior/dps/gear_sets", "p4_fury"),
 				core.GetGearSet("../../../ui/warrior/dps/gear_sets", "p4_arms"),
+				core.GetGearSet("../../../ui/warrior/dps/gear_sets", "p5_fury"),
+				core.GetGearSet("../../../ui/warrior/dps/gear_sets", "p5_arms"),
 			},
 			Talents: DefaultFuryTalents,
 			OtherTalentSets: []core.TalentsCombo{

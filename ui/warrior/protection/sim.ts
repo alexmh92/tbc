@@ -75,7 +75,7 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionWarrior, {
 
 	defaults: {
 		// Default equipped gear.
-		gear: Presets.P1_PRESET.gear,
+		gear: Presets.P2_PRESET.gear,
 		// Default EP weights for sorting gear in the gear picker.
 		epWeights: Presets.P1_EP_PRESET.epWeights,
 		statCaps: (() => {
@@ -169,8 +169,8 @@ const SPEC_CONFIG = registerSpecConfig(Spec.SpecProtectionWarrior, {
 			Presets.P2_PRESET,
 			Presets.P2_HYDROSS_PRESET,
 			Presets.P3_PRESET,
-			Presets.P35_PRESET,
 			Presets.P4_PRESET,
+			Presets.P5_PRESET,
 		],
 		builds: [
 			Presets.DEFAULT_PRESET_BUILD,

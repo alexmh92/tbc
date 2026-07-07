@@ -3596,9 +3596,7 @@ func RegisterAllProcs() {
 	//       This can be ignored if the effect has already been implemented.
 	//       With next db run the item will be removed if implemented.
 	//
-	// Sometimes heals bearer of 120 damage when damaging an enemy in melee and chance on ranged hit to restore
-	// 172 mana to the bearer.
-	// https://www.wowhead.com/tbc/spell=33504
+	// https://www.wowhead.com/tbc/spell=39599
 	// shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
 	//	Callback:           core.CallbackEmpty,
 	//	ProcMask:           core.ProcMaskUnknown,
@@ -5312,37 +5310,6 @@ func RegisterAllProcs() {
 	//       This can be ignored if the effect has already been implemented.
 	//       With next db run the item will be removed if implemented.
 	//
-	// Your Mortal Strike, Bloodthirst, and Shield Slam attacks have a 25% chance to heal you for 330 and grant
-	// 55 Strength for 12s.
-	// https://www.wowhead.com/tbc/spell=40459
-	// shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
-	//	Callback:           core.CallbackEmpty,
-	//	ProcMask:           core.ProcMaskUnknown,
-	//	Outcome:            core.OutcomeEmpty,
-	//	RequireDamageDealt: false
-	// }, []shared.ItemVariant{
-	//	{ItemID: 32485, ItemName: "Ashtongue Talisman of Valor"},
-	// })
-
-	// TODO: Manual implementation required
-	//       This can be ignored if the effect has already been implemented.
-	//       With next db run the item will be removed if implemented.
-	//
-	// Your spell critical strikes have a 50% chance to grant you 145 spell haste rating for 5s.
-	// https://www.wowhead.com/tbc/spell=40483
-	// shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
-	//	Callback:           core.CallbackEmpty,
-	//	ProcMask:           core.ProcMaskUnknown,
-	//	Outcome:            core.OutcomeEmpty,
-	//	RequireDamageDealt: false
-	// }, []shared.ItemVariant{
-	//	{ItemID: 32488, ItemName: "Ashtongue Talisman of Insight"},
-	// })
-
-	// TODO: Manual implementation required
-	//       This can be ignored if the effect has already been implemented.
-	//       With next db run the item will be removed if implemented.
-	//
 	// Flash of Light and Holy Light have a 15% chance to grant your target 0 healing over 12s, and your Judgements
 	// have a 50% chance to inflict 0 damage on their target over 8s.
 	// https://www.wowhead.com/tbc/spell=40470
@@ -5353,22 +5320,6 @@ func RegisterAllProcs() {
 	//	RequireDamageDealt: false
 	// }, []shared.ItemVariant{
 	//	{ItemID: 32489, ItemName: "Ashtongue Talisman of Zeal"},
-	// })
-
-	// TODO: Manual implementation required
-	//       This can be ignored if the effect has already been implemented.
-	//       With next db run the item will be removed if implemented.
-	//
-	// Each time your Shadow Word: Pain deals damage, it has a 10% chance to grant you 220 spell damage for 10s
-	// and each time your Renew heals, it has a 10% chance to grant you 220 healing for 5s.
-	// https://www.wowhead.com/tbc/spell=40438
-	// shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
-	//	Callback:           core.CallbackEmpty,
-	//	ProcMask:           core.ProcMaskUnknown,
-	//	Outcome:            core.OutcomeEmpty,
-	//	RequireDamageDealt: false
-	// }, []shared.ItemVariant{
-	//	{ItemID: 32490, ItemName: "Ashtongue Talisman of Acumen"},
 	// })
 
 	// TODO: Manual implementation required
@@ -6706,20 +6657,6 @@ func RegisterAllProcs() {
 	// }, []shared.ItemVariant{
 	//	{ItemID: 35413, ItemName: "Crusader's Scaled Gauntlets"},
 	//	{ItemID: 35477, ItemName: "Crusader's Scaled Gauntlets"},
-	// })
-
-	// TODO: Manual implementation required
-	//       This can be ignored if the effect has already been implemented.
-	//       With next db run the item will be removed if implemented.
-	//
-	// https://www.wowhead.com/tbc/spell=46643
-	// shared.NewProcStatBonusEffectWithVariants(shared.ProcStatBonusEffect{
-	//	Callback:           core.CallbackEmpty,
-	//	ProcMask:           core.ProcMaskUnknown,
-	//	Outcome:            core.OutcomeEmpty,
-	//	RequireDamageDealt: false
-	// }, []shared.ItemVariant{
-	//	{ItemID: 35514, ItemName: "Frostscythe of Lord Ahune"},
 	// })
 
 	// TODO: Manual implementation required

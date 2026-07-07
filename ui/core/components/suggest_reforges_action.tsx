@@ -322,6 +322,12 @@ export class ReforgeOptimizer {
 				this.setUseSoftCapBreakpoints(eventID, false);
 			}
 		});
+
+		this.simUI.addWarning({
+			updateOn: TypedEvent.onAny([this.player.epWeightsChangeEmitter, this.useCustomEPValuesChangeEmitter]),
+			getContent: () =>
+				this.player.hasCustomEPWeights() && !this.useCustomEPValues ? i18n.t('sidebar.warnings.custom_ep_not_enabled') : '',
+		});
 	}
 
 	private bindToggleExperimental(element: Element) {

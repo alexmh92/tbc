@@ -22,15 +22,15 @@ import PreraidGear from './gear_sets/preraid.gear.json';
 import Phase1AllianceGear from './gear_sets/p1_a.gear.json';
 import Phase2AllianceGear from './gear_sets/p2_a.gear.json';
 import Phase3Gear from './gear_sets/p3.gear.json';
-import Phase3_5Gear from './gear_sets/p3_5.gear.json';
 import Phase4Gear from './gear_sets/p4.gear.json';
+import Phase5Gear from './gear_sets/p5.gear.json';
 
 export const PreraidPresetGear = PresetUtils.makePresetGear('Pre-raid', PreraidGear);
 export const Phase1AlliancePresetGear = PresetUtils.makePresetGear('Phase 1 (A)', Phase1AllianceGear);
 export const Phase2AlliancePresetGear = PresetUtils.makePresetGear('Phase 2 (A)', Phase2AllianceGear);
 export const Phase3PresetGear = PresetUtils.makePresetGear('Phase 3', Phase3Gear);
-export const Phase3_5PresetGear = PresetUtils.makePresetGear('Phase 3.5', Phase3_5Gear);
 export const Phase4PresetGear = PresetUtils.makePresetGear('Phase 4', Phase4Gear);
+export const Phase5PresetGear = PresetUtils.makePresetGear('Phase 5', Phase5Gear);
 
 export const StandardRotation = PresetUtils.makePresetAPLRotation('Default', DefaultAPL);
 

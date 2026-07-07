@@ -41,6 +41,7 @@ func createMorogrimPreset(raidPrefix string, raidSize int32, bossHealth float64,
 			DamageSpread:  morogrimMeleeDamageSpread,
 
 			ParryHaste: true,
+			CanCrush:   true,
 
 			TargetInputs: morogrimTargetInputs(),
 		},
@@ -140,8 +141,8 @@ func (ai *MorogrimAI) registerTidalWave(disableSlow bool) {
 		DamageMultiplier: 1,
 
 		ApplyEffects: func(sim *core.Simulation, target *core.Unit, spell *core.Spell) {
-			spell.CalcAndDealDamage(sim, target, sim.Roll(3938, 5062), spell.OutcomeMagicHit)
-			if ai.TidalWaveAura != nil {
+			result := spell.CalcAndDealDamage(sim, target, sim.Roll(3938, 5062), spell.OutcomeMagicHit)
+			if result.Landed() && ai.TidalWaveAura != nil {
 				ai.TidalWaveAura.Activate(sim)
 			}
 			spell.CD.Set(sim.CurrentTime + rollTidalWaveCD(sim))

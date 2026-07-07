@@ -29,8 +29,8 @@ func TestBalance(t *testing.T) {
 			OtherGearSets: []core.GearSetCombo{
 				core.GetGearSet("../../../ui/druid/balance/gear_sets", "p2_a"),
 				core.GetGearSet("../../../ui/druid/balance/gear_sets", "p3"),
-				core.GetGearSet("../../../ui/druid/balance/gear_sets", "p3_5"),
 				core.GetGearSet("../../../ui/druid/balance/gear_sets", "p4"),
+				core.GetGearSet("../../../ui/druid/balance/gear_sets", "p5"),
 			},
 			Talents:  DefaultTalents,
 			Rotation: core.GetAplRotation("../../../ui/druid/balance/apls", "default"),

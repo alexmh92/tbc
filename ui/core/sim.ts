@@ -70,7 +70,7 @@ export class Sim {
 	private phase: number = CURRENT_PHASE;
 	private faction: Faction = Faction.Alliance;
 	private fixedRngSeed = 0;
-	private filters: DatabaseFilters = Sim.defaultFilters();
+	private filters: DatabaseFilters = DatabaseFilters.create({ oneHandedWeapons: true, twoHandedWeapons: true });
 	private showDamageMetrics = true;
 	private showThreatMetrics = false;
 	private showHealingMetrics = false;
@@ -329,6 +329,7 @@ export class Sim {
 
 			player.database = gear.toDatabase(this.db);
 			player.equipment = gear.asSpec();
+			if (player.consumables) player.consumables = gear.adjustImbues(player.consumables);
 
 			request.raid!.parties[0].players[0] = player;
 
@@ -768,7 +769,7 @@ export class Sim {
 			this.setLanguage(eventID, proto.language);
 			this.setFaction(eventID, proto.faction || Faction.Alliance);
 
-			const filters = proto.filters || Sim.defaultFilters();
+			const filters = proto.filters || this.defaultFilters();
 			if (filters.armorTypes.length == 0) {
 				if (this.type == SimType.SimTypeIndividual) {
 					filters.armorTypes = this.raid.getActivePlayers()[0].getPlayerClass().armorTypes.slice();
@@ -804,17 +805,22 @@ export class Sim {
 				showHealingMetrics: isHealingSim,
 				showQuickSwap: true,
 				language: this.getLanguage(), // Don't change language.
-				filters: Sim.defaultFilters(),
+				filters: this.defaultFilters(),
 				showEpValues: false,
 				useSoftCapBreakpoints: true,
 			}),
 		);
 	}
 
-	static defaultFilters(): DatabaseFilters {
+	defaultFilters(): DatabaseFilters {
+		const { favoriteItems = [], favoriteGems = [], favoriteRandomSuffixes = [], favoriteEnchants = [] } = this.getFilters();
 		return DatabaseFilters.create({
 			oneHandedWeapons: true,
 			twoHandedWeapons: true,
+			favoriteItems,
+			favoriteGems,
+			favoriteEnchants,
+			favoriteRandomSuffixes,
 		});
 	}
 }

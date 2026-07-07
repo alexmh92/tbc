@@ -536,6 +536,13 @@ dps_results: {
  }
 }
 dps_results: {
+ key: "TestAffliction-AllItems-FrostscytheofLordAhune-278953"
+ value: {
+  dps: 1949.14325
+  tps: 1218.76623
+ }
+}
+dps_results: {
  key: "TestAffliction-AllItems-GlowingCrystalInsignia-25619"
  value: {
   dps: 1973.56792
@@ -608,15 +615,15 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-AllItems-HeavenlyInspiration-30293"
  value: {
-  dps: 1923.39791
-  tps: 1195.72143
+  dps: 1923.41227
+  tps: 1195.70291
  }
 }
 dps_results: {
  key: "TestAffliction-AllItems-HexShrunkenHead-33829"
  value: {
-  dps: 2007.96295
-  tps: 1255.33018
+  dps: 2007.73296
+  tps: 1255.1398
  }
 }
 dps_results: {
@@ -748,8 +755,8 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-AllItems-MementoofTyrande-32496"
  value: {
-  dps: 1919.64485
-  tps: 1188.06418
+  dps: 1919.77029
+  tps: 1188.07878
  }
 }
 dps_results: {
@@ -790,8 +797,8 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-AllItems-OblivionRaiment"
  value: {
-  dps: 1635.94368
-  tps: 983.30399
+  dps: 1636.65257
+  tps: 983.82652
  }
 }
 dps_results: {
@@ -1135,7 +1142,7 @@ dps_results: {
  key: "TestAffliction-AllItems-TomeofDiabolicRemedy-33828"
  value: {
   dps: 1936.19836
-  tps: 1201.83517
+  tps: 1201.84544
  }
 }
 dps_results: {
@@ -1169,15 +1176,15 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-AllItems-VoidheartRaiment"
  value: {
-  dps: 1804.16234
-  tps: 1110.22406
+  dps: 1804.38371
+  tps: 1110.66103
  }
 }
 dps_results: {
  key: "TestAffliction-AllItems-Warp-ScarabBrooch-27828"
  value: {
-  dps: 1939.92352
-  tps: 1207.87125
+  dps: 1939.93788
+  tps: 1207.86301
  }
 }
 dps_results: {
@@ -1225,8 +1232,8 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-Average-Default"
  value: {
-  dps: 1954.64651
-  tps: 1221.99275
+  dps: 1954.66258
+  tps: 1221.99979
  }
 }
 dps_results: {
@@ -1253,15 +1260,15 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 962.27211
-  tps: 1882.23171
+  dps: 950.63073
+  tps: 1871.22339
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 962.27211
-  tps: 615.41094
+  dps: 950.63073
+  tps: 604.72983
  }
 }
 dps_results: {
@@ -1295,15 +1302,15 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-Settings-Orc-preraid-Affliction-affliction-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 971.82357
-  tps: 1890.85226
+  dps: 966.94616
+  tps: 1886.38004
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Orc-preraid-Affliction-affliction-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 971.82357
-  tps: 617.46593
+  dps: 966.94616
+  tps: 613.62282
  }
 }
 dps_results: {

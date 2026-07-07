@@ -412,6 +412,25 @@ func (apl *APLRotation) DoNextAction(sim *Simulation) {
 	}
 
 	if apl.unit.IsChanneling() {
+		dot := apl.unit.ChanneledDot
+		// All ticks consumed but aura not yet expired (lazy expiry). Deactivate now so
+		// the caster doesn't idle between GCD-ready and the lazy aura expiry time.
+		if dot.remainingTicks == 0 {
+			dot.Deactivate(sim)
+			return
+		}
+		// Increment evalGeneration so variable refs re-evaluate with current game state,
+		// not the cached values from the previous getNextAction call.
+		apl.evalGeneration++
+		// Also evaluate interruptIf when the GCD fires, not only on each tick.
+		if apl.shouldInterruptChannel(sim) {
+			clipDelay := dot.getChannelClipDelay()
+			dot.tickAction.NextActionAt = NeverExpires
+			dot.Deactivate(sim)
+			if dot.Spell.Unit.GCD.IsReady(sim) {
+				apl.unit.WaitUntil(sim, sim.CurrentTime+clipDelay)
+			}
+		}
 		return
 	}
 
@@ -490,6 +509,67 @@ func (apl *APLRotation) popControllingAction(ca APLActionImpl) {
 	apl.controllingActions = apl.controllingActions[:len(apl.controllingActions)-1]
 }
 
+// nextActionWouldRecastChannel reports whether the same channeled spell would be
+// the first action cast if the channel ended right now. It evaluates the APL in
+// the post-channel state (ChanneledDot = nil) so channel-state-dependent
+// conditions don't produce stale results.
+//
+// Uses CanCast rather than CanCastOrQueue so that a proc-queued spell in the
+// same timestep does not incorrectly block a same-spell re-cast from being
+// detected.
+//
+// Caller must restore ChanneledDot after this call — this function does NOT
+// restore it.
+func (apl *APLRotation) nextActionWouldRecastChannel(sim *Simulation, channeledDot *Dot) bool {
+	channeledSpell := channeledDot.Spell
+
+	// Evaluate in post-channel state.
+	apl.unit.ChanneledDot = nil
+
+	for _, action := range apl.priorityList {
+		if action.condition != nil && !action.condition.GetBool(sim) {
+			continue
+		}
+
+		if castAction, ok := action.impl.(*APLActionCastSpell); ok {
+			canCast := castAction.spell.CanCast(sim, castAction.target.Get())
+			if castAction.spell == channeledSpell || castAction.spell.Matches(channeledSpell.ClassSpellMask) {
+				return canCast
+			}
+			// Use CanCast (not CanCastOrQueue) so SQW-queued spells don't
+			// prematurely interrupt — they'll fire after the channel's next tick.
+			if canCast {
+				return false
+			}
+			continue
+		}
+
+		if channelAction, ok := action.impl.(*APLActionChannelSpell); ok {
+			canCast := channelAction.spell.CanCast(sim, channelAction.target.Get())
+			if channelAction.spell == channeledSpell || channelAction.spell.Matches(channeledSpell.ClassSpellMask) {
+				return canCast
+			}
+			if canCast {
+				return false
+			}
+			continue
+		}
+
+		// autocast_other_cooldowns fires off-GCD MCDs alongside the main rotation —
+		// never blocks same-spell detection.
+		if _, ok := action.impl.(*APLActionAutocastOtherCooldowns); ok {
+			continue
+		}
+
+		// A different non-spell action is fully ready — it would be cast first.
+		if action.impl.IsReady(sim) {
+			return false
+		}
+	}
+
+	return false
+}
+
 func (apl *APLRotation) shouldInterruptChannel(sim *Simulation) bool {
 	channeledDot := apl.unit.ChanneledDot
 
@@ -497,13 +577,13 @@ func (apl *APLRotation) shouldInterruptChannel(sim *Simulation) bool {
 		return false
 	}
 
-	// Allow next action to interrupt the channel, but if the action is the same action then it still needs to continue.
-	nextAction := apl.getNextAction(sim)
-	if nextAction != nil {
-		if channelAction, ok := nextAction.impl.(*APLActionChannelSpell); ok && channelAction.spell == channeledDot.Spell {
-			// Newly selected action is channeling the same spell, so continue the channel unless recast is allowed.
-			return apl.allowChannelRecastOnInterrupt
-		}
+	// Check whether the same channel would be re-cast in post-channel state.
+	// nextActionWouldRecastChannel clears ChanneledDot — restore it afterwards.
+	wouldRecast := apl.nextActionWouldRecastChannel(sim, channeledDot)
+	apl.unit.ChanneledDot = channeledDot
+
+	if wouldRecast {
+		return apl.allowChannelRecastOnInterrupt
 	}
 
 	return true
