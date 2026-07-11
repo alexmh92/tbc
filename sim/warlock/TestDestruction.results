@@ -1239,36 +1239,36 @@ dps_results: {
 dps_results: {
  key: "TestDestruction-Settings-Gnome-preraid-Destruction-destruction-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1872.04218
-  tps: 2774.71542
+  dps: 1876.18588
+  tps: 2795.34309
  }
 }
 dps_results: {
  key: "TestDestruction-Settings-Gnome-preraid-Destruction-destruction-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 1872.04218
-  tps: 1636.50902
+  dps: 1876.18588
+  tps: 1640.87205
  }
 }
 dps_results: {
  key: "TestDestruction-Settings-Gnome-preraid-Destruction-destruction-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2256.26707
-  tps: 1963.21404
+  dps: 2252.4446
+  tps: 1961.45968
  }
 }
 dps_results: {
  key: "TestDestruction-Settings-Gnome-preraid-Destruction-destruction-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 963.58483
-  tps: 2067.76477
+  dps: 961.52403
+  tps: 2067.33478
  }
 }
 dps_results: {
  key: "TestDestruction-Settings-Gnome-preraid-Destruction-destruction-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 963.58483
-  tps: 862.90088
+  dps: 961.52403
+  tps: 860.83478
  }
 }
 dps_results: {

@@ -51,7 +51,7 @@ var RaceOffsets = map[proto.Race]stats.Stats{
 		stats.Stamina:   0,
 	},
 	proto.Race_RaceUndead: {
-		stats.Agility:   -2,
+		stats.Agility:   -3,
 		stats.Strength:  -1,
 		stats.Intellect: -2,
 		stats.Spirit:    5,
@@ -261,4 +261,43 @@ func init() {
 	AddBaseStatsCombo(proto.Race_RaceTauren, proto.Class_ClassWarrior)
 	AddBaseStatsCombo(proto.Race_RaceTroll, proto.Class_ClassWarrior)
 	AddBaseStatsCombo(proto.Race_RaceUndead, proto.Class_ClassWarrior)
+
+	// The class tables above hold as-shown naked character sheet values, but
+	// for races with a multiplier racial (The Human Spirit ×1.1, gnome
+	// Expansive Mind ×1.05) the as-shown number already includes the racial:
+	// e.g. human paladin shows Spirit 97 = floor(89 * 1.1). The racial is
+	// applied via MultiplyStat in racials.go, so these combos must store the
+	// true pre-racial base — both to avoid double-dipping and because the
+	// game carries the fractional product (97.9) into further multipliers:
+	// with Blessing of Kings, floor(89 * 1.1 * 1.1) = 107, not floor(97 * 1.1).
+	// Each base below is the unique integer whose floored product matches the
+	// as-shown sheet value.
+	humanBaseSpirit := map[proto.Class]float64{
+		proto.Class_ClassWarrior: 51,  // floor(51 * 1.1) = 56
+		proto.Class_ClassPaladin: 89,  // floor(89 * 1.1) = 97
+		proto.Class_ClassRogue:   53,  // floor(53 * 1.1) = 58
+		proto.Class_ClassPriest:  151, // floor(151 * 1.1) = 166
+		proto.Class_ClassMage:    132, // floor(132 * 1.1) = 145
+		proto.Class_ClassWarlock: 131, // floor(131 * 1.1) = 144
+	}
+	for class, spirit := range humanBaseSpirit {
+		key := BaseStatsKey{Race: proto.Race_RaceHuman, Class: class}
+		baseStats := BaseStats[key]
+		baseStats[stats.Spirit] = spirit
+		BaseStats[key] = baseStats
+	}
+
+	gnomeBaseIntellect := map[proto.Class]float64{
+		proto.Class_ClassWarrior: 35,  // floor(35 * 1.05) = 36
+		proto.Class_ClassRogue:   40,  // floor(40 * 1.05) = 42
+		proto.Class_ClassPriest:  141, // floor(141 * 1.05) = 148
+		proto.Class_ClassMage:    147, // floor(147 * 1.05) = 154
+		proto.Class_ClassWarlock: 130, // floor(130 * 1.05) = 136
+	}
+	for class, intellect := range gnomeBaseIntellect {
+		key := BaseStatsKey{Race: proto.Race_RaceGnome, Class: class}
+		baseStats := BaseStats[key]
+		baseStats[stats.Intellect] = intellect
+		BaseStats[key] = baseStats
+	}
 }

@@ -1762,24 +1762,24 @@ dps_results: {
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-default-FullBuffs-5.0yards-LongMultiTarget"
  value: {
-  dps: 2472.83845
-  tps: 4333.24153
+  dps: 2472.23419
+  tps: 4332.07669
   dtps: 44391.92789
  }
 }
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-default-FullBuffs-5.0yards-LongSingleTarget"
  value: {
-  dps: 999.10417
-  tps: 1761.03762
+  dps: 998.74235
+  tps: 1760.37227
   dtps: 1254.13171
  }
 }
 dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-default-FullBuffs-5.0yards-ShortSingleTarget"
  value: {
-  dps: 1133.60845
-  tps: 1978.24298
+  dps: 1133.20721
+  tps: 1977.51215
   dtps: 1326.17281
  }
 }
@@ -1795,7 +1795,7 @@ dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-default-NoBuffs-5.0yards-LongSingleTarget"
  value: {
   dps: 421.80252
-  tps: 884.81838
+  tps: 884.84645
   dtps: 2281.72218
  }
 }
@@ -1803,7 +1803,7 @@ dps_results: {
  key: "TestProtection-Settings-Human-p2-Protection-default-NoBuffs-5.0yards-ShortSingleTarget"
  value: {
   dps: 443.6182
-  tps: 924.0747
+  tps: 924.09664
   dtps: 2347.48218
  }
 }

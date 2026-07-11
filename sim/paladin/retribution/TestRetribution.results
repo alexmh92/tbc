@@ -1678,39 +1678,39 @@ dps_results: {
 dps_results: {
  key: "TestRetribution-Settings-Human-p1-Default-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 2470.95076
-  tps: 2510.69188
+  dps: 2470.80797
+  tps: 2510.59193
   dtps: 12.8974
  }
 }
 dps_results: {
  key: "TestRetribution-Settings-Human-p1-Default-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 1950.61517
-  tps: 1535.81666
+  dps: 1950.471
+  tps: 1535.71574
   dtps: 14.64644
  }
 }
 dps_results: {
  key: "TestRetribution-Settings-Human-p1-Default-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2357.9648
-  tps: 1870.43097
+  dps: 2357.78395
+  tps: 1870.30437
   dtps: 30.31153
  }
 }
 dps_results: {
  key: "TestRetribution-Settings-Human-p1-Default-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 534.85666
-  tps: 502.14917
+  dps: 532.34094
+  tps: 499.9276
  }
 }
 dps_results: {
  key: "TestRetribution-Settings-Human-p1-Default-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 534.85666
-  tps: 418.869
+  dps: 532.34094
+  tps: 416.64743
  }
 }
 dps_results: {
