@@ -3,7 +3,7 @@ character_stats_results: {
  value: {
   final_stats: 193
   final_stats: 183
-  final_stats: 650
+  final_stats: 651
   final_stats: 402
   final_stats: 1007.2
   final_stats: 994.2
@@ -34,7 +34,7 @@ character_stats_results: {
   final_stats: 7
   final_stats: 3088
   final_stats: 0
-  final_stats: 10970
+  final_stats: 10980
   final_stats: 8365
   final_stats: 122.5
   final_stats: 33
@@ -1239,36 +1239,36 @@ dps_results: {
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1916.1719
-  tps: 2413.58195
+  dps: 1917.73606
+  tps: 2416.47757
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 1916.1719
-  tps: 1204.40443
+  dps: 1917.73606
+  tps: 1205.40237
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2236.33562
-  tps: 1450.65862
+  dps: 2237.70634
+  tps: 1451.61625
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 950.6732
-  tps: 1871.31366
+  dps: 950.63073
+  tps: 1871.22339
  }
 }
 dps_results: {
  key: "TestAffliction-Settings-Human-preraid-Affliction-affliction-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 950.6732
-  tps: 604.8201
+  dps: 950.63073
+  tps: 604.72983
  }
 }
 dps_results: {

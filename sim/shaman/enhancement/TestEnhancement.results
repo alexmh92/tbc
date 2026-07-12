@@ -3,7 +3,7 @@ character_stats_results: {
  value: {
   final_stats: 470
   final_stats: 381
-  final_stats: 730
+  final_stats: 731
   final_stats: 278
   final_stats: 236.7
   final_stats: 1043.09
@@ -34,7 +34,7 @@ character_stats_results: {
   final_stats: 20
   final_stats: 6280
   final_stats: 0
-  final_stats: 11449
+  final_stats: 11459
   final_stats: 7190.4
   final_stats: 143.5
   final_stats: 33
@@ -1638,36 +1638,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Standard-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4197.20857
-  tps: 2492.24973
+  dps: 4197.3043
+  tps: 2492.25898
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Standard-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 2007.24794
-  tps: 1776.30934
+  dps: 2007.27513
+  tps: 1776.31888
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Standard-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2189.05327
-  tps: 1913.92562
+  dps: 2189.08677
+  tps: 1913.9355
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Standard-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1936.42867
-  tps: 1266.4051
+  dps: 1946.67927
+  tps: 1270.61558
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Standard-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 860.64418
-  tps: 732.45925
+  dps: 860.51947
+  tps: 731.43059
  }
 }
 dps_results: {
@@ -1680,36 +1680,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Sync OH Swings-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4156.1386
-  tps: 2450.58202
+  dps: 4156.23442
+  tps: 2450.59127
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Sync OH Swings-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 1965.99211
-  tps: 1733.93368
+  dps: 1966.01943
+  tps: 1733.94325
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Sync OH Swings-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2150.84765
-  tps: 1874.83499
+  dps: 2150.88125
+  tps: 1874.84487
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Sync OH Swings-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1929.81909
-  tps: 1254.5619
+  dps: 1928.76136
+  tps: 1249.39183
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-DefaultTalents-Sync OH Swings-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 849.9229
-  tps: 721.1315
+  dps: 848.68274
+  tps: 719.59454
  }
 }
 dps_results: {
@@ -1722,36 +1722,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Standard-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4481.04733
-  tps: 2968.36097
+  dps: 4481.15155
+  tps: 2968.37294
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Standard-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 2045.25961
-  tps: 1832.81086
+  dps: 2045.28909
+  tps: 1832.82285
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Standard-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2207.56002
-  tps: 1947.759
+  dps: 2207.5939
+  tps: 1947.77049
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Standard-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1980.62725
-  tps: 1294.10165
+  dps: 1978.89364
+  tps: 1293.60933
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Standard-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 839.81353
-  tps: 719.09627
+  dps: 840.62218
+  tps: 720.98662
  }
 }
 dps_results: {
@@ -1764,36 +1764,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Sync OH Swings-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4463.65901
-  tps: 2969.07599
+  dps: 4463.7632
+  tps: 2969.0879
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Sync OH Swings-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 2032.67486
-  tps: 1819.01922
+  dps: 2032.70453
+  tps: 1819.03122
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Sync OH Swings-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2202.96118
-  tps: 1937.28959
+  dps: 2202.99569
+  tps: 1937.30108
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Sync OH Swings-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1966.14175
-  tps: 1282.42812
+  dps: 1961.9965
+  tps: 1279.23016
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Elemental-Sync OH Swings-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 835.21148
-  tps: 715.25028
+  dps: 835.5568
+  tps: 716.98364
  }
 }
 dps_results: {
@@ -1806,36 +1806,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Standard-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4197.20857
-  tps: 2492.24973
+  dps: 4197.3043
+  tps: 2492.25898
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Standard-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 2007.24794
-  tps: 1776.30934
+  dps: 2007.27513
+  tps: 1776.31888
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Standard-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2189.05327
-  tps: 1913.92562
+  dps: 2189.08677
+  tps: 1913.9355
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Standard-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1936.42867
-  tps: 1266.4051
+  dps: 1946.67927
+  tps: 1270.61558
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Standard-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 860.64418
-  tps: 732.45925
+  dps: 860.51947
+  tps: 731.43059
  }
 }
 dps_results: {
@@ -1848,36 +1848,36 @@ dps_results: {
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Sync OH Swings-default-FullBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 4156.1386
-  tps: 2450.58202
+  dps: 4156.23442
+  tps: 2450.59127
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Sync OH Swings-default-FullBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 1965.99211
-  tps: 1733.93368
+  dps: 1966.01943
+  tps: 1733.94325
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Sync OH Swings-default-FullBuffs-0.0yards-ShortSingleTarget"
  value: {
-  dps: 2150.84765
-  tps: 1874.83499
+  dps: 2150.88125
+  tps: 1874.84487
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Sync OH Swings-default-NoBuffs-0.0yards-LongMultiTarget"
  value: {
-  dps: 1929.81909
-  tps: 1254.5619
+  dps: 1928.76136
+  tps: 1249.39183
  }
 }
 dps_results: {
  key: "TestEnhancement-Settings-Orc-p1-Sub-Restoration ILS-Sync OH Swings-default-NoBuffs-0.0yards-LongSingleTarget"
  value: {
-  dps: 849.9229
-  tps: 721.1315
+  dps: 848.68274
+  tps: 719.59454
  }
 }
 dps_results: {
