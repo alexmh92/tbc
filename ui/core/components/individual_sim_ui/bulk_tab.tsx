@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import tippy from 'tippy.js';
 import { ref } from 'tsx-vanilla';
 
-import { REPO_RELEASES_URL } from '../../constants/other';
+import { UPSTREAM_RELEASES_URL } from '../../constants/other';
 import { IndividualSimUI } from '../../individual_sim_ui';
 import i18n from '../../../i18n/config';
 import { BulkSettings, DistributionMetrics, ProgressMetrics, RaidSimResult } from '../../proto/api';
@@ -705,7 +705,7 @@ export class BulkTab extends SimTab {
 				<p className="mb-0" innerHTML={i18n.t('bulk_tab.description')} />
 				{isExternal() && (
 					<p className="mb-0">
-						<a href={REPO_RELEASES_URL} target="_blank">
+						<a href={UPSTREAM_RELEASES_URL} target="_blank">
 							<i className="fas fa-gauge-high me-1" />
 							{i18n.t('bulk_tab.download_local')}
 						</a>

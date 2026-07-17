@@ -1,38 +1,36 @@
-# WoW The Burning Crusade Classic Simulator
+# Elemental Shaman BiS Upgrade Planner
 
-## Elemental Shaman Upgrade Planner
+Rank your next TBC Elemental Shaman upgrade by its simulated single-swap DPS gain.
 
-This fork adds an **Upgrade Planner** tab to the Elemental Shaman simulator. Import your current character, select one or more phase BiS presets, and the planner ranks every preset item by its single-swap DPS gain. Results include percentage gain and a simulation-noise confidence indicator, with special handling for rings, trinkets, and weapon combinations.
+## [Open the hosted Upgrade Planner](https://alexmh92.github.io/tbc/shaman/elemental/)
 
-The hosted planner is available at [alexmh92.github.io/tbc/shaman/elemental/](https://alexmh92.github.io/tbc/shaman/elemental/).
+## What it does
 
-The original simulator, simulation engine, and game data are maintained by the [WoWSims team](https://github.com/wowsims/tbc-new).
+- Imports your current character through the WoWSims addon, current JSON export, or legacy TBC WoWSims JSON.
+- Uses the built-in Pre-Raid and Phase 1–5 Elemental Shaman BiS presets.
+- Tests every selected preset item as an individual swap against your current gear.
+- Ranks upgrades by DPS gain and percentage gain.
+- Shows whether a result is statistically significant or within simulation noise.
+- Handles paired ring/trinket slots, two-handed weapons, owned items, and incompatible off-hands.
 
-Welcome to the WoW The Burning Crusade Classic simulator! If you have questions or are thinking about contributing, [join our discord](https://discord.gg/jJMPr9JWwx) to chat!
+## How to use it
 
-The primary goal of this project is to provide a framework that makes it easy to build a DPS sim for any class/spec, with a polished UI and accurate results. Each community will have ownership / responsibility over their portion of the sim, to ensure accuracy and that their community is represented. By having all the individual sims on the same engine, we can also have a combined 'raid sim' for testing raid compositions.
+1. Open the [Elemental Shaman simulator](https://alexmh92.github.io/tbc/shaman/elemental/).
+2. Select **Import → Addon** and paste your WoWSims Exporter output. JSON imports are also supported.
+3. Check your talents, rotation, buffs, consumes, and encounter settings.
+4. Open **Upgrade Planner** and select the BiS phases you want to compare. Phase 2 is selected by default.
+5. Select **Sim upgrades** and rank your soft-reserve choices using the resulting DPS gains.
 
-This project is licensed with MIT license. We request that anyone using this software in their own project to make sure there is a user visible link back to the original project.
+Legacy JSON from `wowsims.github.io/tbc/elemental_shaman/` imports gear, race, and talents. Rotation, buffs, and consumes stay on the current simulator settings and should be reviewed before running the planner.
 
-[Live sims can be found here.](https://wowsims.com/tbc)
+## About this fork
 
-[Support our devs via Patreon.](https://www.patreon.com/wowsims)
+This project is a public fork of [WoWSims TBC](https://github.com/wowsims/tbc-new). The simulation engine, game data, class implementations, and original UI are maintained by the WoWSims team. This fork adds the Elemental Shaman Upgrade Planner and its GitHub Pages deployment.
 
-## Downloading Sim
+The project remains under the upstream [MIT licence](LICENSE). No imported character data is sent to a custom server; simulations run in your browser.
 
-Links for latest Sim build:
+## Development
 
-- [Windows Sim](https://github.com/wowsims/tbc-new/releases/latest/download/wowsimtbc-windows.exe.zip)
-- [MacOS Sim](https://github.com/wowsims/tbc-new/releases/latest/download/wowsimtbc-amd64-darwin.zip)
-- [Linux Sim](https://github.com/wowsims/tbc-new/releases/latest/download/wowsimtbc-amd64-linux.zip)
-
-Then unzip the downloaded file, then open the unzipped file to open the sim in your browser!
-
-Alternatively, you can choose from a specific relase on the [Releases](https://github.com/wowsims/tbc-new/releases) page and click the suitable link under "Assets"
-
-## Documentation
-
-- [Installation Guide](docs/installation.md)
-- [Development Commands](docs/commands.md)
-- [Adding a New Sim](docs/adding_sim.md)
-- [Internationalization](docs/i18n_guide.md)
+- [Installation guide](docs/installation.md)
+- [Development commands](docs/commands.md)
+- [Upstream WoWSims project](https://github.com/wowsims/tbc-new)

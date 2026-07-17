@@ -3,9 +3,8 @@ import tippy, { ReferenceElement as TippyReferenceElement } from 'tippy.js';
 import { ref } from 'tsx-vanilla';
 
 import i18n from '../../i18n/config';
-import { REPO_CHOOSE_NEW_ISSUE_URL, REPO_RELEASES_URL } from '../constants/other';
+import { REPO_CHOOSE_NEW_ISSUE_URL } from '../constants/other';
 import { SimUI } from '../sim_ui';
-import { isLocal, noop } from '../utils';
 import { Component } from './component';
 import { Exporter } from './exporter';
 import { SimToolbarItem } from './header/sim_toolbar_item';
@@ -42,7 +41,6 @@ export class SimHeader extends Component {
 		this.knownIssuesContent = (<ul className="text-start ps-3 mb-0"></ul>) as HTMLUListElement;
 		this.knownIssuesLink = this.addKnownIssuesLink();
 		this.addBugReportLink();
-		this.addDownloadBinaryLink();
 		this.addSimOptionsLink();
 		this.addSocialLinks();
 
@@ -162,42 +160,6 @@ export class SimHeader extends Component {
 			icon: 'fas fa-bug fa-lg',
 			tooltip: i18n.t('info.bug_report'),
 		});
-	}
-
-	private addDownloadBinaryLink() {
-		const href = REPO_RELEASES_URL;
-		const icon = 'fas fa-gauge-high fa-lg';
-		const parent = this.simToolbar;
-
-		if (isLocal()) {
-			fetch('/version')
-				.then(resp => {
-					resp.json()
-						.then(versionInfo => {
-							if (versionInfo.outdated == 2) {
-								this.addToolbarLink({
-									href: href,
-									parent: parent,
-									icon: icon,
-									tooltip: 'Newer version of simulator available for download',
-									classes: 'downbin link-danger',
-								});
-							}
-						})
-						.catch(_error => {
-							console.warn('No version info found!');
-						});
-				})
-				.catch(noop);
-		} else {
-			this.addToolbarLink({
-				href: href,
-				parent: parent,
-				icon: icon,
-				tooltip: 'Download simulator for faster simulating',
-				classes: 'downbin',
-			});
-		}
 	}
 
 	private addSimOptionsLink() {

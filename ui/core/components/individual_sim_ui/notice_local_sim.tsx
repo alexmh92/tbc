@@ -1,4 +1,4 @@
-import { LOCAL_STORAGE_PREFIX, REPO_RELEASES_URL } from '../../constants/other';
+import { LOCAL_STORAGE_PREFIX, UPSTREAM_RELEASES_URL } from '../../constants/other';
 import { isDevMode, isLocal } from '../../utils';
 import { Component } from '../component';
 import Toast from '../toast';
@@ -46,7 +46,7 @@ export class NoticeLocalSim extends Component {
 			body: (
 				<div>
 					<p>{i18n.t('sim.notice_local_download.message')}</p>
-					<a href={REPO_RELEASES_URL} className="btn btn-outline-light" target="_blank" onclick={() => this.setHasSeenNotice()}>
+					<a href={UPSTREAM_RELEASES_URL} className="btn btn-outline-light" target="_blank" onclick={() => this.setHasSeenNotice()}>
 						{i18n.t('sim.notice_local_download.download_button')}
 					</a>
 				</div>
