@@ -14,6 +14,10 @@ import { ReforgeOptimizer } from '../../core/components/suggest_reforges_action'
 const SPEC_CONFIG = registerSpecConfig(Spec.SpecElementalShaman, {
 	cssClass: 'elemental-shaman-sim-ui',
 	cssScheme: PlayerClasses.getCssClass(PlayerClasses.Shaman),
+	upgradePlanner: {
+		defaultPresetNames: ['Phase 2'],
+		storageKey: 'elementalShaman__upgradePlannerPresets__',
+	},
 	// List any known bugs / issues here and they'll be shown on the site.
 	knownIssues: [],
 	warnings: [],

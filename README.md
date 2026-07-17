@@ -1,5 +1,13 @@
 # WoW The Burning Crusade Classic Simulator
 
+## Elemental Shaman Upgrade Planner
+
+This fork adds an **Upgrade Planner** tab to the Elemental Shaman simulator. Import your current character, select one or more phase BiS presets, and the planner ranks every preset item by its single-swap DPS gain. Results include percentage gain and a simulation-noise confidence indicator, with special handling for rings, trinkets, and weapon combinations.
+
+The hosted planner is available at [alexmh92.github.io/tbc/shaman/elemental/](https://alexmh92.github.io/tbc/shaman/elemental/).
+
+The original simulator, simulation engine, and game data are maintained by the [WoWSims team](https://github.com/wowsims/tbc-new).
+
 Welcome to the WoW The Burning Crusade Classic simulator! If you have questions or are thinking about contributing, [join our discord](https://discord.gg/jJMPr9JWwx) to chat!
 
 The primary goal of this project is to provide a framework that makes it easy to build a DPS sim for any class/spec, with a polished UI and accurate results. Each community will have ownership / responsibility over their portion of the sim, to ensure accuracy and that their community is represented. By having all the individual sims on the same engine, we can also have a combined 'raid sim' for testing raid compositions.

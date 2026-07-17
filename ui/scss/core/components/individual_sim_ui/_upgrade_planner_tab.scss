@@ -1,0 +1,72 @@
+.upgrade-planner-tab {
+	.upgrade-planner-layout {
+		display: grid;
+		grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+		gap: var(--spacer-4);
+		padding: var(--spacer-3);
+	}
+
+	.upgrade-planner-controls,
+	.upgrade-planner-results {
+		min-width: 0;
+	}
+
+	.upgrade-planner-preset-list {
+		display: grid;
+		gap: var(--spacer-2);
+		margin-bottom: var(--spacer-3);
+	}
+
+	.upgrade-planner-actions {
+		display: flex;
+		gap: var(--spacer-2);
+		flex-wrap: wrap;
+	}
+
+	.upgrade-planner-stale {
+		margin-bottom: var(--spacer-3);
+	}
+
+	.upgrade-planner-table-wrap {
+		overflow-x: auto;
+	}
+
+	.upgrade-planner-table {
+		min-width: 900px;
+		margin-bottom: 0;
+
+		th {
+			white-space: nowrap;
+		}
+
+		.upgrade-planner-item-link {
+			font-weight: 600;
+			white-space: nowrap;
+		}
+
+		.upgrade-planner-phase-badge {
+			margin-right: var(--spacer-1);
+			margin-bottom: var(--spacer-1);
+		}
+
+		.positive {
+			color: var(--bs-success);
+		}
+
+		.negative {
+			color: var(--bs-danger);
+		}
+	}
+
+	.upgrade-planner-attribution {
+		margin-top: var(--spacer-3);
+		font-size: 0.8rem;
+		color: var(--bs-secondary-color);
+	}
+
+	@media (max-width: 991.98px) {
+		.upgrade-planner-layout {
+			grid-template-columns: 1fr;
+		}
+	}
+}

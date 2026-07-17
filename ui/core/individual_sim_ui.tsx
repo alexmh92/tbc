@@ -25,6 +25,7 @@ import { PresetConfigurationPicker } from './components/individual_sim_ui/preset
 import { RotationTab } from './components/individual_sim_ui/rotation_tab';
 import { SettingsTab } from './components/individual_sim_ui/settings_tab';
 import { TalentsTab } from './components/individual_sim_ui/talents_tab';
+import { UpgradePlannerTab } from './components/individual_sim_ui/upgrade_planner_tab';
 import * as InputHelpers from './components/input_helpers';
 import * as OtherInputs from './components/inputs/other_inputs';
 import { ItemNotice } from './components/item_notice/item_notice';
@@ -121,6 +122,10 @@ export interface IndividualSimUIConfig<SpecType extends Spec> extends PlayerConf
 	cssClass: string;
 	// Used to generate schemed components. E.g. 'shaman', 'druid', 'raid'
 	cssScheme: string;
+	upgradePlanner?: {
+		defaultPresetNames: Array<string>;
+		storageKey: string;
+	};
 
 	knownIssues?: Array<string>;
 	warnings?: Array<(simUI: IndividualSimUI<SpecType>) => SimWarning>;
@@ -352,6 +357,9 @@ export abstract class IndividualSimUI<SpecType extends Spec> extends SimUI {
 		}
 
 		this.bt = this.addBulkTab();
+		if (this.individualConfig.upgradePlanner) {
+			new UpgradePlannerTab(this.simTabContentsContainer, this, this.individualConfig.upgradePlanner);
+		}
 
 		this.sim.waitForInit().then(() => {
 			this.addTopbarComponents();
